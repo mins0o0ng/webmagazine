@@ -13,7 +13,7 @@
 
 insert into profiles (id, handle, display_name, bio, is_admin)
 values (
-  '00000000-0000-0000-0000-000000000000',  -- ← 1단계에서 만든 UUID 로 교체
+  '7d0fbc0a-1f80-4e7d-9786-718149154d3e',  -- ← 1단계에서 만든 UUID 로 교체
   'editor',
   '편집장',
   null,
