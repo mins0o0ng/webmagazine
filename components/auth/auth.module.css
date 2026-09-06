@@ -1,0 +1,129 @@
+/* 로그인·가입 — 디자인 2b 의 활자와 괘선 규칙 */
+
+.wrap {
+  max-width: 30rem;
+  padding-block: 52px 96px;
+}
+
+.title {
+  margin-top: 24px;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-band);
+  line-height: var(--leading-band);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-ink);
+}
+
+.lede {
+  margin-top: 16px;
+  font-size: var(--text-deck-lead);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: var(--rule-thick) solid var(--color-rule);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.label {
+  font-size: var(--text-kicker);
+  font-weight: 700;
+  letter-spacing: var(--tracking-kicker);
+  color: var(--color-ink);
+}
+
+.hint {
+  font-size: var(--text-meta-sm);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--color-meta);
+}
+
+.input {
+  padding: 12px;
+  background: transparent;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  font-size: var(--text-deck-lead);
+}
+
+.submit {
+  align-self: flex-start;
+  padding: 14px 28px;
+  background: var(--color-ink);
+  color: var(--color-band-ink);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.error {
+  padding: 12px 16px;
+  border-left: 3px solid var(--color-spot);
+  background: var(--color-plate);
+  font-size: var(--text-deck-card);
+}
+
+/* 메일을 보냈다는 안내. 계정 존재 여부를 흘리지 않으려고 성공·실패 모두 이 화면이다. */
+.sent {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: var(--rule-thick) solid var(--color-rule);
+}
+
+.sentTitle {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-card);
+  letter-spacing: var(--display-tracking);
+}
+
+.sentBody {
+  margin-top: 14px;
+  font-size: var(--text-deck-card);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+.alt {
+  margin-top: 28px;
+  font-size: var(--text-meta-sm);
+  color: var(--color-meta);
+}
+
+.altLink {
+  font-weight: 700;
+  color: var(--color-spot);
+}
+
+.legal {
+  margin-top: 24px;
+  font-size: var(--text-meta-sm);
+  line-height: var(--leading-deck);
+  color: var(--color-meta);
+}
+
+.legal a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}

@@ -74,6 +74,35 @@
   border-bottom-color: transparent;
 }
 
+/* 로그인 상태가 정해지기 전에도 자리를 잡아둔다. 값이 들어올 때 마스트헤드가
+   흔들리지 않도록 최소 폭을 준다. */
+.authSlot {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 4rem;
+  justify-content: flex-end;
+}
+
+.who {
+  font-weight: 700;
+}
+
+/* 로그아웃은 POST 여야 한다(GET 링크면 프리페치나 크롤러가 로그아웃시킨다).
+   폼 버튼이지만 마스트헤드에서는 링크처럼 보여야 한다. */
+.linkButton {
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: var(--text-meta);
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 /* 마스트헤드 아래 굵은 괘선 + 가는 괘선. 2b 의 위계는 굵기로 만들어진다. */
 .ruleGap {
   height: 5px;

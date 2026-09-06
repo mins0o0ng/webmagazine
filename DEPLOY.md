@@ -60,7 +60,42 @@ M1 은 인증이 없지만 `posts.author_id` 가 not null 이고 `profiles → a
 Table Editor 에서 각 테이블에 **RLS enabled** 배지가 붙었는지 눈으로 볼 것.
 하나라도 꺼져 있으면 anon 키만으로 누구나 쓸 수 있다(기획안 §5.3, §7).
 
-### 1.5 키 복사
+그 다음 **정책 우회 테스트를 돌린다.** 기획안 §6 M2 의 완료 기준이다.
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=... \
+NEXT_PUBLIC_SUPABASE_ANON_KEY=... \
+SUPABASE_SERVICE_ROLE_KEY=... \
+npm run test:rls
+```
+
+계정 두 개를 만들어 남의 글 수정·삭제, 남의 초안 열람, 남의 이름으로 글쓰기,
+비로그인 좋아요 삽입, 스스로 관리자 되기를 차례로 시도하고 전부 막히는지 본다.
+끝나면 만든 계정을 지운다. **개발용 프로젝트에서 돌릴 것** — 운영 DB 에 테스트
+계정과 글이 잠깐 생긴다.
+
+전부 통과해야 다음 단계로 넘어간다. 실패한 항목은 실제 구멍이다.
+
+### 1.5 인증 설정 (M2)
+
+Authentication → URL Configuration
+
+| 항목 | 값 |
+|---|---|
+| Site URL | 배포 도메인 (예: `https://eonjenga.vercel.app`) |
+| Redirect URLs | `https://<도메인>/auth/callback`, `http://localhost:3000/auth/callback` |
+
+**여기가 첫 배포에서 가장 자주 막히는 곳이다.** Redirect URL 목록에 없는 주소로는
+Supabase 가 되돌려 보내지 않는다. 로컬 주소를 같이 넣어두지 않으면 개발 중에
+로그인이 안 되고, 배포 도메인을 안 넣으면 운영에서 안 된다.
+
+Vercel 의 프리뷰 배포까지 쓰려면 와일드카드를 하나 더 넣는다:
+`https://*-<팀명>.vercel.app/auth/callback`
+
+Authentication → Providers → Email 에서 **Confirm email** 이 켜져 있는지 확인한다.
+매직링크는 이 설정을 쓴다. 비밀번호 로그인은 쓰지 않으므로 꺼도 된다.
+
+### 1.6 키 복사
 
 Settings → API 에서 세 값을 가져온다.
 

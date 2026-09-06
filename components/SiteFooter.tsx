@@ -17,11 +17,14 @@ export function SiteFooter() {
             <li>
               <Link href="/about">소개</Link>
             </li>
-            {/* 이용약관·개인정보처리방침은 가입 기능이 붙는 M2 부터 실제 법적 의무가
-                생긴다(기획안 §6 M2). 디자인에도 링크가 아닌 글자로 놓여 있어,
-                문서가 생길 때까지 링크를 걸지 않는다 — 빈 페이지를 만들지 않기 위해서다. */}
-            <li>이용약관</li>
-            <li>개인정보</li>
+            {/* M2 에서 가입이 열리면서 실제 법적 의무가 됐다(기획안 §6 M2).
+                두 문서 모두 아직 초안이며 채워야 할 항목이 남아 있다. */}
+            <li>
+              <Link href="/legal/terms">이용약관</Link>
+            </li>
+            <li>
+              <Link href="/legal/privacy">개인정보</Link>
+            </li>
             <li>
               <Link href="/feed.xml">RSS</Link>
             </li>

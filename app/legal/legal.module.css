@@ -1,0 +1,88 @@
+.wrap {
+  max-width: var(--measure);
+  padding-block: 52px 96px;
+}
+
+.title {
+  margin-top: 24px;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-band);
+  line-height: var(--leading-band);
+  letter-spacing: var(--display-tracking);
+}
+
+.updated {
+  margin-top: 14px;
+  font-size: var(--text-meta-sm);
+  color: var(--color-meta);
+}
+
+/* 초안 표시. 실제 서비스 개시 전에 지워질 블록이다. */
+.draft {
+  margin-top: 28px;
+  padding: 16px 20px;
+  border-left: 3px solid var(--color-spot);
+  background: var(--color-plate);
+  font-size: var(--text-deck-card);
+  line-height: var(--leading-deck);
+}
+
+.body {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: var(--rule-thick) solid var(--color-rule);
+  font-size: var(--text-deck-lead);
+  line-height: var(--leading-body);
+}
+
+.body h2 {
+  margin-top: 44px;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-card);
+  line-height: var(--leading-card);
+  letter-spacing: var(--display-tracking);
+}
+
+.body h2:first-child {
+  margin-top: 0;
+}
+
+.body p {
+  margin-top: 16px;
+}
+
+.body ul {
+  margin-top: 16px;
+  padding-left: 22px;
+  list-style: disc;
+}
+
+.body li {
+  margin-top: 8px;
+}
+
+.body table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  font-size: var(--text-deck-card);
+}
+
+.body th,
+.body td {
+  padding: 10px 12px;
+  border-bottom: var(--rule-thin) solid var(--color-rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+/* 채워야 하는 자리 */
+.todo {
+  padding: 0 6px;
+  background: var(--color-spot);
+  color: var(--color-band-ink);
+  font-size: 0.85em;
+  font-weight: 700;
+}

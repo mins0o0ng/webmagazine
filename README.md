@@ -2,7 +2,9 @@
 
 읽고 쓰는 사람들의 자리.
 
-기획안 v1.0 의 **마일스톤 1** 골격 + 디자인 **옵션 2b**. Next.js (App Router) + Supabase.
+기획안 v1.0 의 **마일스톤 1 + 2** + 디자인 **옵션 2b**. Next.js (App Router) + Supabase.
+
+배포 절차는 [DEPLOY.md](./DEPLOY.md).
 
 ---
 
@@ -74,6 +76,7 @@ M1 은 `ADMIN_PASSWORD` 환경변수 하나로 막는다(기획안 §6 M1).
 ## 구조
 
 ```
+middleware.ts         토큰 갱신 + 보호 라우트
 app/
   tokens.css          디자인 2b 토큰 — 색·활자·괘선·레이아웃
   globals.css         리셋 + .page / .plate / .kicker / .rule-*
@@ -81,20 +84,30 @@ app/
   p/[id]/             글 상세
   category/[slug]/    카테고리 목록 (ISR 60초)
   write/              새 글 · 수정 · 서버 액션
-  login/              M2 자리표시 — 마스트헤드 링크가 404 로 떨어지지 않게
+  login/ signup/      매직링크 요청
+  auth/actions.ts     로그인·가입·프로필 생성 서버 액션
+  auth/callback/      매직링크가 돌아오는 곳
+  auth/complete/      핸들이 겹쳤을 때 다시 고르는 화면
+  legal/              이용약관 · 개인정보처리방침 (초안)
   feed.xml/           RSS
 components/
   PostCard.tsx        순번 붙은 카드. 썸네일 없이도 성립 ← M1 전제 조건
   PostEditor.tsx      마크다운 textarea + 미리보기
   Markdown.tsx        본문 렌더러 (원시 HTML 비활성)
+  auth/AuthNav.tsx    마스트헤드 로그인 표시 (클라이언트 — ISR 을 지키기 위해)
 lib/
   site.ts             제호·태그라인
-  supabase.ts         publicClient(anon, RLS 적용) / adminClient(service role)
+  supabase.ts         publicClient / sessionClient / adminClient
+  supabaseBrowser.ts  브라우저 클라이언트
+  auth.ts             세션·프로필 헬퍼, 핸들 규칙, 열린 리다이렉트 차단
   posts.ts            공개 읽기 · 에디터 픽 · 이번 달 필자 집계
   adminPosts.ts       초안 포함 읽기 — 게이트 통과 후에만
-  adminGate.ts        M1 임시 인증
+  adminGate.ts        M1 임시 인증 (/write. M2-1 에서 세션으로 교체된다)
+  env.mjs             빌드 시점 환경변수 검사
+scripts/
+  rls-test.mjs        정책 우회 테스트 ← M2 완료 기준
 supabase/
-  migrations/0001_init.sql
+  migrations/         20260906000000_init · 20260906010000_auth
   seed.sql
 ```
 
@@ -164,6 +177,21 @@ EDITOR'S PICK). enum 값은 기획안 §3.1 그대로 `essay`/`place`/`love`/`li
 기획안은 M2-1 로 잡았지만 디자인 홈에 있고, 이번 달 글만 받아 JS 에서 집계하면
 되는 수준이라 먼저 만들었다. 필자 페이지 `/u/[handle]` 링크는 M2-1 이라 아직 없다.
 
+**6. 컬럼 단위 GRANT 를 추가했다 (M2).**
+1차 마이그레이션의 RLS 정책만으로는 **가입한 사람이 자기 profile 에
+`is_admin = true` 를 써넣을 수 있었다.** RLS 는 어느 *행*을 건드릴지만 정하지,
+그 행의 어느 *칸*을 건드릴지는 정하지 않기 때문이다. `is_admin()` 이 true 가 되면
+`posts_update_own` 이 관리자에게 남의 글 수정을 허용하므로, 누구나 모든 글을
+고치고 내릴 수 있게 된다. 가입이 열리는 순간 실제 권한 상승 경로다.
+`revoke insert, update … grant (컬럼 목록)` 으로 막았고, 같은 방식으로
+`like_count` 직접 조작과 댓글의 `post_id` 변경도 막았다.
+`scripts/rls-test.mjs` 가 이 세 가지를 검사한다.
+
+**7. 마스트헤드의 로그인 표시를 클라이언트에서 읽는다.**
+서버에서 `cookies()` 를 읽으면 이 헤더를 쓰는 **모든 페이지가 동적 렌더링이 되어
+ISR 이 사라진다.** 캐시된 지면에 개인 상태를 섞지 않는다는 §2.3 의 원칙이
+좋아요·댓글뿐 아니라 로그인 표시에도 그대로 적용된다.
+
 ---
 
 ## 미해결
@@ -184,9 +212,27 @@ EDITOR'S PICK). enum 값은 기획안 §3.1 그대로 `essay`/`place`/`love`/`li
 - [ ] 제호 확정 — 지금은 "언젠가 (가제)". `lib/site.ts` 한 곳에 있다.
 - [ ] Vercel 연결
 
+### M2 를 열기 전에 반드시
+
+- [ ] **`npm run test:rls` 전부 통과** — 기획안 §6 M2 의 완료 기준. 실행법은
+      [DEPLOY.md](./DEPLOY.md) 1.4 참고. 실제 Supabase 프로젝트 없이는 돌릴 수 없어
+      아직 한 번도 실행되지 않았다.
+- [ ] **이용약관·개인정보처리방침의 TODO 채우기** — 두 문서 모두 초안이고
+      화면에 초안 안내가 떠 있다. 특히 약관 8조(게시물 관리)와 9조(권리 귀속)는
+      남의 글을 받는 매체에서 비어 있으면 안 되는 조항이다.
+- [ ] Supabase Authentication → URL Configuration 에 Redirect URL 등록
+      ([DEPLOY.md](./DEPLOY.md) 1.5)
+
+### M2 는 혼자 배포하기 애매하다
+
+지금 상태에서 가입한 사람이 할 수 있는 일이 없다. `/write` 는 여전히
+관리자 비밀번호로 막혀 있고(기획안이 세션 교체를 M2-1 로 잡았다), 좋아요와 댓글은
+M3 다. 계정을 만들 수는 있는데 아무것도 못 하는 상태는 사용자 입장에서 고장으로
+보인다. **M2-1(3~5일)까지 묶어서 내보내는 편이 낫다.**
+
 ### 이후 마일스톤
 
-M2 (인증) · M2-1 (타인 기고) · M3 (좋아요) · M3-1 (댓글) · M4 (AI 썸네일)
+M2-1 (타인 기고) · M3 (좋아요) · M3-1 (댓글) · M4 (AI 썸네일)
 — 기획안 §6 참고. 스키마와 RLS 는 이미 이들을 전제로 깔려 있다.
 
 ---
