@@ -1,0 +1,20 @@
+.footer {
+  margin-top: var(--space-24);
+  border-top: 1px solid var(--color-rule);
+  padding-block: var(--space-8) var(--space-12);
+  font-size: var(--text-small);
+  color: var(--color-ink-muted);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: space-between;
+}
+
+.links {
+  display: flex;
+  gap: var(--space-4);
+  list-style: none;
+}

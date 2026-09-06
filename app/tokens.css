@@ -1,0 +1,73 @@
+/* ===========================================================================
+ * 디자인 토큰
+ *
+ * ★ 색상 값은 전부 PLACEHOLDER 다. `Magazine Color Options.dc.html` 에서 확정된
+ *   팔레트가 오면 이 파일의 --color-* 블록만 교체하면 된다.
+ *   컴포넌트는 리터럴 색을 쓰지 않으므로 다른 파일은 손대지 않는다.
+ *
+ * 명명 규칙: 역할 기반(ink / paper / accent)이지 색 이름 기반이 아니다.
+ * "--gray-700" 으로 두면 팔레트가 바뀔 때 이름이 거짓말이 된다.
+ * ======================================================================== */
+
+:root {
+  /* --- 색: 지면 ------------------------------------------------------ */
+  --color-paper: #fdfcfa; /* 본문 배경 */
+  --color-paper-sunken: #f4f2ee; /* 카드/섹션 배경 */
+  --color-rule: #e3dfd8; /* 괘선, 구분선 */
+  --color-rule-strong: #1a1917; /* 매거진 특유의 굵은 헤어라인 */
+
+  /* --- 색: 글자 ------------------------------------------------------ */
+  --color-ink: #1a1917; /* 제목, 본문 */
+  --color-ink-muted: #6b665e; /* 부제, 메타 */
+  --color-ink-faint: #9a948a; /* 날짜, 카운터 */
+
+  /* --- 색: 강조 ------------------------------------------------------ */
+  --color-accent: #b3402b;
+  --color-accent-ink: #ffffff; /* accent 위에 얹는 글자 */
+  --color-focus: #2f6ae1; /* 포커스 링 — 접근성상 accent 와 분리한다 */
+
+  /* --- 타이포 --------------------------------------------------------
+   * Pretendard 서빙 방식은 미결정(§8). 지금은 시스템 폰트로 폴백하고,
+   * 결정되면 --font-sans 앞에 Pretendard 를 끼워 넣는다.  */
+  --font-sans: 'Pretendard', 'Pretendard Variable', -apple-system,
+    BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', Roboto,
+    'Malgun Gothic', sans-serif;
+  --font-serif: 'Nanum Myeongjo', 'Apple SD Gothic Neo', Georgia, serif;
+
+  /* 유동 타입 스케일. 매거진 헤드라인은 뷰포트에 따라 크게 움직여야 한다. */
+  --text-display: clamp(2.25rem, 1.4rem + 4.2vw, 4.5rem);
+  --text-headline: clamp(1.5rem, 1.1rem + 1.9vw, 2.25rem);
+  --text-title: clamp(1.125rem, 0.98rem + 0.7vw, 1.375rem);
+  --text-body: 1.0625rem;
+  --text-small: 0.875rem;
+  --text-micro: 0.75rem;
+
+  --leading-tight: 1.18;
+  --leading-normal: 1.5;
+  --leading-loose: 1.8; /* 한글 본문은 영문보다 행간이 넉넉해야 읽힌다 */
+
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.08em;
+
+  /* --- 간격 ---------------------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+
+  /* --- 레이아웃 ------------------------------------------------------- */
+  --measure: 38rem; /* 본문 한 줄 길이 상한 */
+  --page-max: 76rem;
+  --page-gutter: clamp(1rem, 0.4rem + 2.5vw, 3rem);
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+}
+
+/* 팔레트 확정 전까지 다크 모드는 열어두지 않는다.
+   지금 값을 지어내면 나중에 두 벌을 다 고쳐야 한다. */

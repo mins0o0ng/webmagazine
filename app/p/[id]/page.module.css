@@ -1,0 +1,147 @@
+.article {
+  padding-block: var(--space-12);
+}
+
+.header {
+  max-width: var(--measure);
+  margin-inline: auto;
+  text-align: center;
+  padding-bottom: var(--space-8);
+}
+
+.title {
+  font-size: var(--text-display);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  font-weight: 700;
+  margin-block: var(--space-3);
+}
+
+.deck {
+  font-family: var(--font-serif);
+  font-size: var(--text-title);
+  line-height: var(--leading-normal);
+  color: var(--color-ink-muted);
+}
+
+.byline {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-rule);
+  font-size: var(--text-small);
+  color: var(--color-ink-faint);
+}
+
+.figure {
+  margin-block: var(--space-8);
+  background: var(--color-paper-sunken);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* --- 본문 ----------------------------------------------------------- */
+
+.body {
+  max-width: var(--measure);
+  margin-inline: auto;
+  font-size: var(--text-body);
+  line-height: var(--leading-loose);
+}
+
+.body > * + * {
+  margin-top: var(--space-6);
+}
+
+.body h2 {
+  margin-top: var(--space-12);
+  font-size: var(--text-headline);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.body h3 {
+  margin-top: var(--space-8);
+  font-size: var(--text-title);
+  line-height: var(--leading-tight);
+}
+
+.body a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--color-accent);
+}
+
+.body blockquote {
+  padding-left: var(--space-6);
+  border-left: 2px solid var(--color-accent);
+  color: var(--color-ink-muted);
+  font-family: var(--font-serif);
+}
+
+.body ul,
+.body ol {
+  padding-left: var(--space-6);
+}
+
+.body li + li {
+  margin-top: var(--space-2);
+}
+
+.body img {
+  border-radius: var(--radius-sm);
+}
+
+.body hr {
+  border: 0;
+  border-top: 1px solid var(--color-rule);
+  margin-block: var(--space-12);
+}
+
+.body code {
+  background: var(--color-paper-sunken);
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+  font-size: 0.9em;
+}
+
+.body pre {
+  background: var(--color-paper-sunken);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.body pre code {
+  background: none;
+  padding: 0;
+}
+
+.body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-small);
+}
+
+.body th,
+.body td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-rule);
+  text-align: left;
+}
+
+/* --- 하단 ----------------------------------------------------------- */
+
+.footer {
+  max-width: var(--measure);
+  margin: var(--space-16) auto 0;
+  padding-top: var(--space-6);
+  border-top: 2px solid var(--color-rule-strong);
+  font-size: var(--text-small);
+  color: var(--color-ink-muted);
+}

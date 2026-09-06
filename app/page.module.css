@@ -1,0 +1,129 @@
+/* 홈 레이아웃
+ * ⚠ 잠정안. 상위 문서의 '홈 화면 와이어프레임 v2' 를 아직 받지 못했다.
+ *   구조(리드 + 그리드)만 세워두고, 확정 와이어프레임이 오면 이 파일에서 조정한다. */
+
+.lead {
+  display: grid;
+  gap: var(--space-6);
+  padding-block: var(--space-12);
+  border-bottom: 1px solid var(--color-rule);
+}
+
+@media (min-width: 52rem) {
+  .lead {
+    grid-template-columns: 1.15fr 1fr;
+    gap: var(--space-12);
+    align-items: center;
+  }
+}
+
+.leadFigure {
+  order: -1;
+  background: var(--color-paper-sunken);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+
+@media (min-width: 52rem) {
+  .leadFigure {
+    order: 1;
+  }
+}
+
+.leadImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 리드 기사에 썸네일이 없을 때: 사진 자리를 비우는 대신 부제를 지면 크기로 세운다. */
+.leadTypeblock {
+  display: flex;
+  align-items: center;
+  padding: var(--space-8);
+  border-top: 3px solid var(--color-rule-strong);
+  font-family: var(--font-serif);
+  font-size: var(--text-headline);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.leadTitle {
+  font-size: var(--text-display);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  font-weight: 700;
+  margin-block: var(--space-3);
+}
+
+.leadDeck {
+  font-size: var(--text-title);
+  line-height: var(--leading-normal);
+  color: var(--color-ink-muted);
+  max-width: var(--measure);
+}
+
+.leadMeta {
+  margin-top: var(--space-4);
+  font-size: var(--text-small);
+  color: var(--color-ink-faint);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-block: var(--space-16) var(--space-6);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-rule-strong);
+}
+
+.sectionTitle {
+  font-size: var(--text-title);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+
+.more {
+  font-size: var(--text-small);
+  color: var(--color-ink-muted);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-8) var(--space-6);
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  list-style: none;
+}
+
+/* --- 빈 상태 -------------------------------------------------------
+ * 기획안 M3-1 의 원칙("사과문이 아니라 초대문")을 홈에도 적용한다.
+ * 글이 0편인 홈은 배포 첫날 반드시 마주치는 화면이다. */
+
+.empty {
+  padding-block: var(--space-24);
+  text-align: center;
+  border-top: 2px solid var(--color-rule-strong);
+}
+
+.emptyTitle {
+  font-family: var(--font-serif);
+  font-size: var(--text-headline);
+  letter-spacing: var(--tracking-tight);
+}
+
+.emptyBody {
+  margin-top: var(--space-3);
+  color: var(--color-ink-muted);
+}
+
+.emptyAction {
+  display: inline-block;
+  margin-top: var(--space-6);
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-small);
+}

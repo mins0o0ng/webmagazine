@@ -1,0 +1,148 @@
+.wrap {
+  max-width: 60rem;
+  margin-inline: auto;
+  padding-block: var(--space-12);
+}
+
+.heading {
+  font-size: var(--text-headline);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--color-rule-strong);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.hint {
+  font-size: var(--text-micro);
+  color: var(--color-ink-faint);
+  font-weight: 400;
+}
+
+.input,
+.select,
+.textarea {
+  padding: var(--space-3);
+  background: var(--color-paper);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+}
+
+.textarea {
+  min-height: 24rem;
+  resize: vertical;
+  line-height: var(--leading-loose);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-small);
+}
+
+.row {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+/* --- 본문 에디터: 마크다운 textarea + 미리보기 (§6 M1 — 리치 에디터는 쓰지 않는다) */
+
+.editorHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.tab {
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-small);
+  color: var(--color-ink-muted);
+  cursor: pointer;
+}
+
+.tabActive {
+  border-color: var(--color-rule);
+  background: var(--color-paper-sunken);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.preview {
+  min-height: 24rem;
+  padding: var(--space-4);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  line-height: var(--leading-loose);
+}
+
+.preview > * + * {
+  margin-top: var(--space-4);
+}
+
+.previewEmpty {
+  color: var(--color-ink-faint);
+}
+
+/* --- 액션 ----------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-rule);
+}
+
+.primary,
+.secondary {
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-small);
+  cursor: pointer;
+  border: 1px solid var(--color-rule-strong);
+}
+
+.primary {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-weight: 600;
+}
+
+.secondary {
+  background: none;
+}
+
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.error {
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-paper-sunken);
+  font-size: var(--text-small);
+}
