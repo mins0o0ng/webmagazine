@@ -157,14 +157,18 @@ npm run dev
 
 Settings → Environment Variables. **Type 을 반드시 구분해서 넣는다.**
 
-| 변수 | Type | 빌드에 필요 |
+| 변수 | Type | 빌드가 멈추는가 |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | **Config** | 예 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Config** | 예 |
-| `NEXT_PUBLIC_SITE_URL` | **Config** | 예 |
+| `NEXT_PUBLIC_SUPABASE_URL` | **Config** | **예** |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Config** | **예** |
+| `NEXT_PUBLIC_SITE_URL` | **Config** | 아니오 (경고) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret | 아니오 |
 | `ADMIN_PASSWORD` | Secret | 아니오 |
 | `ADMIN_AUTHOR_ID` | Config | 아니오 |
+
+`NEXT_PUBLIC_SITE_URL` 은 배포 도메인이라 **첫 배포가 성공해야 값을 알 수 있다.**
+그래서 없어도 빌드는 통과시키고 경고만 한다. 도메인이 정해진 뒤 3.3 에서 채운다.
+다만 `NEXT_PUBLIC_` 이므로 채울 때는 반드시 Config 여야 한다.
 
 > **여기서 가장 많이 막힌다.**
 > Vercel 의 **Sensitive(Secret, 자물쇠 아이콘) 변수는 빌드 단계에 주입되지 않는다.**
@@ -184,7 +188,7 @@ Settings → Environment Variables. **Type 을 반드시 구분해서 넣는다.
 환경 선택은 **Production 과 Preview** 면 충분하다. Development 는 `vercel dev` 를
 쓸 때만 필요하고, 로컬은 `.env.local` 을 쓴다.
 
-`NEXT_PUBLIC_` 셋 중 하나라도 빠지면 **빌드가 멈추고 어느 변수인지 이름을 찍는다**
+앞의 두 개 중 하나라도 빠지면 **빌드가 멈추고 어느 변수인지 이름을 찍는다**
 (`scripts/check-env.mjs`). 배포된 다음 첫 방문자의 요청에서 500 으로 죽는 것보다 낫다.
 
 ### 3.3 도메인 확정 후
