@@ -56,9 +56,19 @@ M1 은 인증이 없지만 `posts.author_id` 가 not null 이고 `profiles → a
 
 ### 1.4 RLS 확인
 
-마이그레이션이 네 테이블 전부에 RLS 를 켜고 정책을 만든다. 적용 후
-Table Editor 에서 각 테이블에 **RLS enabled** 배지가 붙었는지 눈으로 볼 것.
-하나라도 꺼져 있으면 anon 키만으로 누구나 쓸 수 있다(기획안 §5.3, §7).
+마이그레이션이 네 테이블 전부에 RLS 를 켜고 정책을 만든다.
+
+**대시보드의 정책 목록만 보고 판단하지 말 것.** 정책은 RLS 가 켜져 있을 때만
+작동하는데, 목록은 RLS 가 꺼져 있어도 그대로 채워져 보인다. `RLS DISABLED` 배지가
+붙은 채 정책이 세 줄 나열돼 있으면 그 테이블은 열려 있는 것이다.
+
+`supabase/check_rls.sql` 을 SQL Editor 에 붙여넣어 세 가지를 확인한다.
+
+1. 네 테이블 모두 `rls_enabled = true`
+2. `anon` 의 권한이 `SELECT` 뿐
+3. `authenticated` 의 컬럼 권한에 `is_admin`, `like_count`, `comment_count` 가 없음
+
+하나라도 어긋나면 마이그레이션이 끝까지 돌지 않은 것이다. 다시 실행할 것.
 
 그 다음 **정책 우회 테스트를 돌린다.** 기획안 §6 M2 의 완료 기준이다.
 
