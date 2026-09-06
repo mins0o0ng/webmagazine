@@ -1,9 +1,3 @@
-import { checkEnv, checkNoLeakedSecrets } from './lib/env.mjs';
-
-// 배포된 다음 첫 요청에서 500 으로 죽는 대신 빌드에서 막는다.
-checkEnv();
-checkNoLeakedSecrets();
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -14,5 +8,9 @@ const nextConfig = {
     ],
   },
 };
+
+// 환경변수 검사는 scripts/check-env.mjs 가 build 스크립트에서 먼저 돌린다.
+// 여기서 던지면 Next 가 "Failed to load next.config.mjs" 로 감싸버려서
+// 어떤 변수가 없는지가 그 아래 묻힌다.
 
 export default nextConfig;
