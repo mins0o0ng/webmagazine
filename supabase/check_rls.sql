@@ -26,7 +26,17 @@ where table_schema = 'public'
 group by table_name, grantee
 order by table_name, grantee;
 
--- 3. authenticated 가 건드릴 수 있는 컬럼 --------------------------------------
+-- 3. 실제로 막히는지 (동작 확인) ----------------------------------------------
+-- 위 1~2 는 설정을 보는 것이고, 이건 anon 이 되어서 직접 읽어보는 것이다.
+-- published 만 나와야 한다. draft 나 hidden 이 한 줄이라도 나오면 RLS 가 안 걸린 것이다.
+-- 읽기만 하고 되돌리므로 데이터는 바뀌지 않는다.
+begin;
+  set local role anon;
+  select status as "anon 에게 보이는 상태", count(*) as "글 수"
+  from posts group by status order by status;
+rollback;
+
+-- 4. authenticated 가 건드릴 수 있는 컬럼 --------------------------------------
 -- profiles 에 is_admin 이, posts 에 like_count / comment_count 가 나오면 안 된다.
 -- 나오면 가입한 사람이 스스로 관리자가 되거나 좋아요 수를 조작할 수 있다.
 select
