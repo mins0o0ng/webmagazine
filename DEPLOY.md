@@ -63,10 +63,7 @@ Table Editor 에서 각 테이블에 **RLS enabled** 배지가 붙었는지 눈�
 그 다음 **정책 우회 테스트를 돌린다.** 기획안 §6 M2 의 완료 기준이다.
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=... \
-NEXT_PUBLIC_SUPABASE_ANON_KEY=... \
-SUPABASE_SERVICE_ROLE_KEY=... \
-npm run test:rls
+npm run test:rls    # .env.local 을 자동으로 읽는다
 ```
 
 계정 두 개를 만들어 남의 글 수정·삭제, 남의 초안 열람, 남의 이름으로 글쓰기,
