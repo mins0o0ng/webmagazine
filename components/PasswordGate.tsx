@@ -9,7 +9,7 @@ export function PasswordGate() {
   const [state, formAction] = useActionState<ActionState, FormData>(unlock, {});
 
   return (
-    <div className={styles.wrap}>
+    <div className={`page ${styles.wrap}`}>
       <h1 className={styles.heading}>편집자 확인</h1>
       <form action={formAction} className={styles.form}>
         {state.error && (

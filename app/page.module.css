@@ -1,129 +1,301 @@
-/* 홈 레이아웃
- * ⚠ 잠정안. 상위 문서의 '홈 화면 와이어프레임 v2' 를 아직 받지 못했다.
- *   구조(리드 + 그리드)만 세워두고, 확정 와이어프레임이 오면 이 파일에서 조정한다. */
+/* 홈 — 디자인 2b */
+
+/* --- 리드 기사 ------------------------------------------------------
+ * 원본: 사진 740px 좌측, 텍스트 우측(flex:1), 간격 40px, 위 여백 52px */
 
 .lead {
   display: grid;
-  gap: var(--space-6);
-  padding-block: var(--space-12);
-  border-bottom: 1px solid var(--color-rule);
+  gap: var(--col-gap);
+  padding-top: 52px;
 }
 
-@media (min-width: 52rem) {
+@media (min-width: 60rem) {
   .lead {
-    grid-template-columns: 1.15fr 1fr;
-    gap: var(--space-12);
-    align-items: center;
+    grid-template-columns: minmax(0, 740fr) minmax(0, 460fr);
+    align-items: start;
   }
 }
 
-.leadFigure {
-  order: -1;
-  background: var(--color-paper-sunken);
-  overflow: hidden;
-  border-radius: var(--radius-sm);
+.leadPlate {
+  min-width: 0;
 }
 
-@media (min-width: 52rem) {
-  .leadFigure {
-    order: 1;
-  }
-}
-
-.leadImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* 리드 기사에 썸네일이 없을 때: 사진 자리를 비우는 대신 부제를 지면 크기로 세운다. */
-.leadTypeblock {
+.leadBody {
   display: flex;
-  align-items: center;
-  padding: var(--space-8);
-  border-top: 3px solid var(--color-rule-strong);
-  font-family: var(--font-serif);
-  font-size: var(--text-headline);
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
+  flex-direction: column;
+  min-width: 0;
 }
 
 .leadTitle {
-  font-size: var(--text-display);
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
-  font-weight: 700;
-  margin-block: var(--space-3);
+  margin-top: 24px;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-lead);
+  line-height: var(--leading-lead);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-ink);
+}
+
+/* 사진이 없는 리드는 표제가 지면을 혼자 감당한다. 2b 의 30% 는 활자다. */
+.leadFull .leadTitle {
+  margin-top: 0;
 }
 
 .leadDeck {
-  font-size: var(--text-title);
-  line-height: var(--leading-normal);
-  color: var(--color-ink-muted);
-  max-width: var(--measure);
+  margin-top: 22px;
+  font-size: var(--text-deck-lead);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+.leadRule {
+  margin-top: 28px;
 }
 
 .leadMeta {
-  margin-top: var(--space-4);
-  font-size: var(--text-small);
-  color: var(--color-ink-faint);
-}
-
-.sectionHead {
+  margin-top: 22px;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-block: var(--space-16) var(--space-6);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--color-rule-strong);
+  align-items: center;
+  gap: 14px;
 }
 
-.sectionTitle {
-  font-size: var(--text-title);
+.leadAvatar {
+  width: 26px;
+  height: 26px;
+}
+
+.leadAuthor {
+  font-size: var(--text-meta);
   font-weight: 700;
-  letter-spacing: var(--tracking-tight);
+  color: var(--color-ink);
 }
 
-.more {
-  font-size: var(--text-small);
-  color: var(--color-ink-muted);
+.leadDate {
+  font-size: var(--text-meta);
+  color: var(--color-meta);
+}
+
+/* 좋아요는 10% 자리 — 시안. 리드에서만 색을 쓴다. */
+.leadLikes {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-spot);
+  font-size: var(--text-meta);
+  font-weight: 700;
+}
+
+.leadBookmark {
+  width: 13px;
+  height: 15px;
+  border: 1.6px solid var(--color-spot);
+  border-bottom-color: transparent;
+  flex: none;
+}
+
+.leadHeart {
+  width: 14px;
+  height: 13px;
+  border: 1.6px solid var(--color-spot);
+  border-radius: 50% 50% 3px 3px;
+  flex: none;
+}
+
+/* --- 카드 열 -------------------------------------------------------- */
+
+.gridRule {
+  margin-top: 56px;
 }
 
 .grid {
   display: grid;
-  gap: var(--space-8) var(--space-6);
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-  list-style: none;
+  gap: var(--col-gap);
+  grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+  padding-top: 36px;
+  align-items: start;
 }
 
-/* --- 빈 상태 -------------------------------------------------------
- * 기획안 M3-1 의 원칙("사과문이 아니라 초대문")을 홈에도 적용한다.
- * 글이 0편인 홈은 배포 첫날 반드시 마주치는 화면이다. */
+/* --- 에디터 픽 검정 띠 -----------------------------------------------
+ * 2b 에서 유일하게 먹으로 채우는 면. 30% 배분의 나머지 절반이다. */
+
+.band {
+  position: relative;
+  margin-top: 60px;
+  padding: 44px;
+  background: var(--color-band);
+  display: grid;
+  gap: 44px;
+  align-items: center;
+}
+
+@media (min-width: 60rem) {
+  .band {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 560px);
+  }
+}
+
+.bandTitle {
+  margin-top: 20px;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-band);
+  line-height: var(--leading-band);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-band-ink);
+}
+
+.bandTitleLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.bandDeck {
+  margin-top: 16px;
+  font-size: var(--text-deck-band);
+  line-height: 1.6;
+  color: var(--color-band-sub);
+}
+
+.bandMeta {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bandAvatar {
+  width: 22px;
+  height: 22px;
+}
+
+.bandAuthor {
+  font-size: var(--text-meta);
+  font-weight: 700;
+  color: var(--color-band-ink);
+}
+
+.bandDate {
+  font-size: var(--text-meta);
+  color: var(--color-band-sub);
+}
+
+/* --- 이번 달에 쓴 사람들 --------------------------------------------- */
+
+.peopleRule {
+  margin-top: 60px;
+}
+
+.peopleHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--col-gap);
+  padding-top: 32px;
+}
+
+.peopleTitle {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-section);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-ink);
+}
+
+.peopleMore {
+  margin-left: auto;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-spot);
+  white-space: nowrap;
+}
+
+.people {
+  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px clamp(2rem, 5.5vw, 6.875rem);
+}
+
+.person {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.personAvatar {
+  width: 48px;
+  height: 48px;
+}
+
+.personName {
+  font-size: var(--text-meta);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.personCount {
+  margin-top: 4px;
+  font-size: var(--text-meta-sm);
+  color: var(--color-meta);
+}
+
+/* 참여 유도. 10% 시안이 쓰이는 세 자리 중 하나. */
+.join {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.joinMark {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1.6px dashed var(--color-spot);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-spot);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.joinLabel {
+  font-size: var(--text-meta);
+  font-weight: 700;
+  color: var(--color-spot);
+}
+
+/* --- 빈 상태 --------------------------------------------------------
+ * 배포 첫날 반드시 마주치는 화면이다. 기획안 M3-1 의 원칙("사과문이 아니라
+ * 초대문")을 홈에도 적용한다. */
 
 .empty {
-  padding-block: var(--space-24);
-  text-align: center;
-  border-top: 2px solid var(--color-rule-strong);
+  padding-block: 96px;
+  max-width: 34rem;
 }
 
 .emptyTitle {
-  font-family: var(--font-serif);
-  font-size: var(--text-headline);
-  letter-spacing: var(--tracking-tight);
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-band);
+  line-height: var(--leading-band);
+  letter-spacing: var(--display-tracking);
 }
 
 .emptyBody {
-  margin-top: var(--space-3);
-  color: var(--color-ink-muted);
+  margin-top: 16px;
+  font-size: var(--text-deck-lead);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
 }
 
 .emptyAction {
   display: inline-block;
-  margin-top: var(--space-6);
-  padding: var(--space-3) var(--space-6);
-  background: var(--color-ink);
-  color: var(--color-paper);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-small);
+  margin-top: 28px;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-spot);
 }

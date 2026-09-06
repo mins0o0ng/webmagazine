@@ -20,7 +20,7 @@ export function PostEditor({ post }: Props) {
   const [thumbnailUrl, setThumbnailUrl] = useState(post?.thumbnail_url ?? '');
 
   return (
-    <div className={styles.wrap}>
+    <div className={`page ${styles.wrap}`}>
       <h1 className={styles.heading}>{post ? '글 수정' : '새 글'}</h1>
 
       <form action={formAction} className={styles.form}>

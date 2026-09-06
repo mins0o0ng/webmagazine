@@ -1,0 +1,29 @@
+.about {
+  max-width: var(--measure);
+  padding-block: 52px;
+}
+
+.title {
+  margin-top: 24px;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-lead);
+  line-height: var(--leading-lead);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-ink);
+}
+
+.tagline {
+  margin-top: 22px;
+  margin-bottom: 28px;
+  font-size: var(--text-deck-lead);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+.body {
+  margin-top: 28px;
+  font-size: var(--text-deck-lead);
+  line-height: var(--leading-body);
+  color: var(--color-sub);
+}

@@ -14,9 +14,9 @@ body {
   margin: 0;
   background: var(--color-paper);
   color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-size: var(--text-body);
-  line-height: var(--leading-normal);
+  font-family: var(--font-body);
+  font-size: var(--text-meta);
+  line-height: var(--leading-deck);
   word-break: keep-all; /* 한글 줄바꿈이 단어 중간에서 끊기지 않게 */
   overflow-wrap: break-word;
 }
@@ -35,6 +35,7 @@ ul,
 ol {
   margin: 0;
   padding: 0;
+  list-style: none;
 }
 
 img {
@@ -53,8 +54,8 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-spot);
+  outline-offset: 3px;
 }
 
 button,
@@ -65,12 +66,51 @@ select {
   color: inherit;
 }
 
-/* --- 레이아웃 유틸 -------------------------------------------------- */
+/* --- 레이아웃 -------------------------------------------------------- */
 
 .page {
   max-width: var(--page-max);
   margin-inline: auto;
   padding-inline: var(--page-gutter);
+}
+
+/* 2b 의 위계는 색이 아니라 괘선 굵기로 만들어진다. */
+.rule-thick {
+  height: var(--rule-thick);
+  background: var(--color-rule);
+}
+
+.rule-thin {
+  height: var(--rule-thin);
+  background: var(--color-rule);
+}
+
+/* 카테고리 라벨. 시안이 들어가는 10% 자리. */
+.kicker {
+  font-size: var(--text-kicker);
+  font-weight: 700;
+  letter-spacing: var(--tracking-kicker);
+  color: var(--color-spot);
+}
+
+/* 사진 자리. 이미지가 로드되기 전에도 비율만큼 자리를 잡는다.
+   목업의 12px 안여백과 "가로 3:2" 라벨은 비율을 설명하기 위한 주석이라 옮기지 않았다.
+   실제 사진이 들어가면 그 여백이 회색 액자로 남는다. */
+.plate {
+  background: var(--color-plate);
+  overflow: hidden;
+}
+
+.plateImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar {
+  border-radius: 50%;
+  background: var(--color-avatar);
+  flex: none;
 }
 
 .visually-hidden {
@@ -82,11 +122,4 @@ select {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-.eyebrow {
-  font-size: var(--text-micro);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--color-ink-muted);
 }

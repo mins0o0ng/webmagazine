@@ -1,73 +1,84 @@
 /* ===========================================================================
- * 디자인 토큰
+ * 디자인 토큰 — Magazine Color Options, 옵션 2b
  *
- * ★ 색상 값은 전부 PLACEHOLDER 다. `Magazine Color Options.dc.html` 에서 확정된
- *   팔레트가 오면 이 파일의 --color-* 블록만 교체하면 된다.
- *   컴포넌트는 리터럴 색을 쓰지 않으므로 다른 파일은 손대지 않는다.
+ *   2b 고딕 볼드형 — 초대형 블랙 고딕 표제, 냉회색 지면, 에디터 픽만 검정 띠
+ *   60 냉회색 지면 · 30 초대형 먹 활자 · 10 시안
  *
- * 명명 규칙: 역할 기반(ink / paper / accent)이지 색 이름 기반이 아니다.
- * "--gray-700" 으로 두면 팔레트가 바뀔 때 이름이 거짓말이 된다.
+ *   60% — 아주 밝은 냉회색 지면. 흰색보다 차갑고 사진 자리와 자연스럽게 붙는다.
+ *   30% — 초대형 블랙 고딕 표제와 에디터 픽 검정 띠. 색이 아니라 굵기가 강조다.
+ *   10% — 시안. 카테고리·좋아요·참여 유도에만.
+ *
+ * 오른쪽 주석은 디자인 파일의 원래 변수명이다.
  * ======================================================================== */
 
 :root {
-  /* --- 색: 지면 ------------------------------------------------------ */
-  --color-paper: #fdfcfa; /* 본문 배경 */
-  --color-paper-sunken: #f4f2ee; /* 카드/섹션 배경 */
-  --color-rule: #e3dfd8; /* 괘선, 구분선 */
-  --color-rule-strong: #1a1917; /* 매거진 특유의 굵은 헤어라인 */
+  /* --- 색 ------------------------------------------------------------ */
+  --color-paper: #f4f5f6; /* --g          지면 */
+  --color-ink: #0c0c0c; /* --ink        표제·이름 */
+  --color-sub: #33383a; /* --sub        부제 */
+  --color-meta: #5e6467; /* --meta       날짜·카운터 */
+  --color-plate: #dfe2e4; /* --plate      사진 자리 */
+  --color-rule: #0c0c0c; /* --rule       괘선 — 먹. 굵기로 위계를 만든다 */
+  --color-spot: #0090c4; /* --spot       시안. 10% 자리 */
+  --color-num: #c4c9cb; /* --num        카드 순번 */
+  --color-avatar: #cdd1d3; /* --avatar     아바타 자리 */
 
-  /* --- 색: 글자 ------------------------------------------------------ */
-  --color-ink: #1a1917; /* 제목, 본문 */
-  --color-ink-muted: #6b665e; /* 부제, 메타 */
-  --color-ink-faint: #9a948a; /* 날짜, 카운터 */
+  --color-mast-bg: #f4f5f6; /* --mast-bg */
+  --color-mast-ink: #0c0c0c; /* --mast-ink */
 
-  /* --- 색: 강조 ------------------------------------------------------ */
-  --color-accent: #b3402b;
-  --color-accent-ink: #ffffff; /* accent 위에 얹는 글자 */
-  --color-focus: #2f6ae1; /* 포커스 링 — 접근성상 accent 와 분리한다 */
+  --color-band: #0c0c0c; /* --band       에디터 픽 검정 띠 */
+  --color-band-ink: #ffffff; /* --band-ink */
+  --color-band-sub: #c9cdcf; /* --band-sub */
 
-  /* --- 타이포 --------------------------------------------------------
-   * Pretendard 서빙 방식은 미결정(§8). 지금은 시스템 폰트로 폴백하고,
-   * 결정되면 --font-sans 앞에 Pretendard 를 끼워 넣는다.  */
-  --font-sans: 'Pretendard', 'Pretendard Variable', -apple-system,
-    BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', Roboto,
-    'Malgun Gothic', sans-serif;
-  --font-serif: 'Nanum Myeongjo', 'Apple SD Gothic Neo', Georgia, serif;
+  /* --- 서체 -----------------------------------------------------------
+   * --font-display / --font-body 의 실제 폰트는 app/layout.tsx 의
+   * next/font 가 주입한다. 여기서는 폴백만 잡는다.
+   *
+   * 기획안 §8 은 Pretendard 서빙 방식을 미결정으로 남겼지만, 디자인 2b 는
+   * 표제에 Black Han Sans, 본문에 Noto Sans KR 을 지정한다. 디자인을 따랐다.  */
+  --font-display: var(--font-black-han-sans), 'Archivo Black', sans-serif;
+  --font-body: var(--font-noto-sans-kr), -apple-system, BlinkMacSystemFont,
+    'Apple SD Gothic Neo', sans-serif;
 
-  /* 유동 타입 스케일. 매거진 헤드라인은 뷰포트에 따라 크게 움직여야 한다. */
-  --text-display: clamp(2.25rem, 1.4rem + 4.2vw, 4.5rem);
-  --text-headline: clamp(1.5rem, 1.1rem + 1.9vw, 2.25rem);
-  --text-title: clamp(1.125rem, 0.98rem + 0.7vw, 1.375rem);
-  --text-body: 1.0625rem;
-  --text-small: 0.875rem;
-  --text-micro: 0.75rem;
+  --display-weight: 400; /* --hw  Black Han Sans 는 400 한 종만 있다 */
+  --display-tracking: -0.03em; /* --ls */
 
-  --leading-tight: 1.18;
-  --leading-normal: 1.5;
-  --leading-loose: 1.8; /* 한글 본문은 영문보다 행간이 넉넉해야 읽힌다 */
+  /* 크기는 디자인의 1440px 기준값을 하한/상한으로 삼아 유동화했다.
+     상한이 곧 디자인 원본 값이다. */
+  --text-lead: clamp(2rem, 1.1rem + 3.9vw, 3.375rem); /* --hs 54px */
+  --text-band: clamp(1.5rem, 1.05rem + 1.9vw, 2rem); /* 32px */
+  --text-card: clamp(1.125rem, 1rem + 0.5vw, 1.375rem); /* 22px */
+  --text-section: 1.125rem; /* 18px */
+  --text-num: 1.875rem; /* 30px */
 
-  --tracking-tight: -0.02em;
-  --tracking-wide: 0.08em;
+  --text-deck-lead: 1rem; /* 16px */
+  --text-deck-band: 0.9375rem; /* 15px */
+  --text-deck-card: 0.875rem; /* 14px */
+  --text-meta: 0.8125rem; /* 13px */
+  --text-meta-sm: 0.75rem; /* 12px */
+  --text-kicker: 0.6875rem; /* 11px */
+  --text-kicker-sm: 0.625rem; /* 10px */
 
-  /* --- 간격 ---------------------------------------------------------- */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-  --space-24: 6rem;
+  --tracking-kicker: 0.18em;
+  --tracking-nav: 0.18em;
+  --tracking-footer: 0.06em;
 
-  /* --- 레이아웃 ------------------------------------------------------- */
-  --measure: 38rem; /* 본문 한 줄 길이 상한 */
-  --page-max: 76rem;
-  --page-gutter: clamp(1rem, 0.4rem + 2.5vw, 3rem);
+  --leading-lead: 1.16;
+  --leading-card: 1.28;
+  --leading-band: 1.24;
+  --leading-deck: 1.55;
+  --leading-body: 1.8; /* 글 상세 본문. 한글은 행간이 넉넉해야 읽힌다 */
 
-  --radius-sm: 2px;
-  --radius-md: 4px;
+  /* --- 괘선 두께 -------------------------------------------------------
+   * 2b 는 색이 아니라 굵기로 위계를 만든다. 두 값뿐이다. */
+  --rule-thick: 4px;
+  --rule-thin: 1px;
+
+  /* --- 레이아웃 --------------------------------------------------------
+   * 디자인 원본은 1440px 고정에 좌우 여백 100px, 카드 280px, 간격 40px.
+   * 1440 = 100 + (280×4) + (40×3) + 100 */
+  --page-max: 1440px;
+  --page-gutter: clamp(1.25rem, 6.94vw, 6.25rem); /* 100px @1440 */
+  --col-gap: clamp(1.25rem, 2.8vw, 2.5rem); /* 40px @1440 */
+  --measure: 42rem; /* 글 상세 본문 한 줄 상한 */
 }
-
-/* 팔레트 확정 전까지 다크 모드는 열어두지 않는다.
-   지금 값을 지어내면 나중에 두 벌을 다 고쳐야 한다. */

@@ -1,10 +1,11 @@
 import { listPublished } from '@/lib/posts';
+import { SITE_NAME, SITE_TAGLINE } from '@/lib/site';
 
 export const revalidate = 60;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-const TITLE = '웹매거진';
-const DESCRIPTION = '읽을 만한 글을 모읍니다.';
+const TITLE = SITE_NAME;
+const DESCRIPTION = SITE_TAGLINE;
 
 function escapeXml(value: string): string {
   return value

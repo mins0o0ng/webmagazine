@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { PostCard } from '@/components/PostCard';
 import { CATEGORIES, categoryLabel, isCategory } from '@/lib/categories';
 import { listPublished } from '@/lib/posts';
-import styles from '../../page.module.css';
+import styles from './page.module.css';
 
 export const revalidate = 60;
 
@@ -27,9 +27,11 @@ export default async function CategoryPage({ params }: Params) {
 
   return (
     <div className="page">
-      <div className={styles.sectionHead}>
-        <h1 className={styles.sectionTitle}>{categoryLabel(slug)}</h1>
+      <div className={styles.head}>
+        <h1 className={styles.title}>{categoryLabel(slug)}</h1>
+        {posts.length > 0 && <span className={styles.count}>글 {posts.length}</span>}
       </div>
+      <div className="rule-thick" />
 
       {posts.length === 0 ? (
         <section className={styles.empty}>
@@ -42,7 +44,7 @@ export default async function CategoryPage({ params }: Params) {
         <ul className={styles.grid}>
           {posts.map((post, i) => (
             <li key={post.id}>
-              <PostCard post={post} fallbackRatio={i % 3 === 1 ? '3:4' : '3:2'} />
+              <PostCard post={post} index={i + 1} />
             </li>
           ))}
         </ul>

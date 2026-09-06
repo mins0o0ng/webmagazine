@@ -1,20 +1,39 @@
+/* 푸터 — 디자인 2b: 굵은 괘선 위에 제호 + 링크 열 */
+
 .footer {
-  margin-top: var(--space-24);
-  border-top: 1px solid var(--color-rule);
-  padding-block: var(--space-8) var(--space-12);
-  font-size: var(--text-small);
-  color: var(--color-ink-muted);
+  margin-top: 56px;
+  padding-bottom: 40px;
 }
 
 .row {
   display: flex;
+  align-items: flex-start;
   flex-wrap: wrap;
-  gap: var(--space-4);
-  justify-content: space-between;
+  gap: var(--col-gap);
+  padding-top: 28px;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-section);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-ink);
+}
+
+.tagline {
+  margin-top: 8px;
+  font-size: var(--text-meta);
+  color: var(--color-meta);
 }
 
 .links {
+  margin-left: auto;
   display: flex;
-  gap: var(--space-4);
-  list-style: none;
+  flex-wrap: wrap;
+  gap: 40px;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+  color: var(--color-sub);
 }
