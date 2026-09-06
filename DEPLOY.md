@@ -114,7 +114,7 @@ Settings → API 에서 세 값을 가져온다.
 
 `service_role` 에는 **절대 `NEXT_PUBLIC_` 을 붙이지 않는다.** 붙이면 클라이언트
 번들에 그대로 들어가고 RLS 가 무의미해진다. `next.config.mjs` 가 빌드에서
-이 실수를 잡지만, 이름을 처음부터 맞추는 편이 낫다.
+이 실수를 잡지만(`scripts/check-env.mjs`), 이름을 처음부터 맞추는 편이 낫다.
 
 ---
 
@@ -148,30 +148,44 @@ npm run dev
 | Framework Preset | Next.js (자동 감지) |
 | Root Directory | `./` |
 | Build / Install Command | 기본값 그대로 |
-| Production Branch | 아래 참고 |
+| Production Branch | `main` |
 
-Production Branch 는 기본이 `main` 인데 **이 저장소에는 아직 `main` 이 없다.**
-지금 브랜치는 `claude/web-magazine-github-6fdyvl` 이므로 둘 중 하나를 한다.
-
-- 이 브랜치를 `main` 으로 병합한 뒤 기본값으로 둔다 (권장)
-- 또는 Settings → Git → Production Branch 를 현재 브랜치로 지정한다
+`main` 이 저장소의 기본 브랜치다. 작업은 `claude/*` 브랜치에서 하고 `main` 으로
+병합하면 Production 배포가 돈다. 작업 브랜치에 푸시하면 Preview 배포가 돈다.
 
 ### 3.2 환경변수
 
-Settings → Environment Variables 에 다섯 개를 넣는다.
-Production / Preview / Development 세 환경 모두 체크.
+Settings → Environment Variables. **Type 을 반드시 구분해서 넣는다.**
 
-```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY      ← Sensitive 로 표시
-ADMIN_PASSWORD                 ← Sensitive 로 표시
-ADMIN_AUTHOR_ID
-NEXT_PUBLIC_SITE_URL           ← 배포 후 실제 도메인. 처음엔 비워두고 3.3 에서 채운다
-```
+| 변수 | Type | 빌드에 필요 |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | **Config** | 예 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Config** | 예 |
+| `NEXT_PUBLIC_SITE_URL` | **Config** | 예 |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret | 아니오 |
+| `ADMIN_PASSWORD` | Secret | 아니오 |
+| `ADMIN_AUTHOR_ID` | Config | 아니오 |
 
-하나라도 빠지면 **빌드가 실패한다.** 배포된 다음 첫 방문자의 요청에서 500 으로
-죽는 것보다 낫기 때문에 일부러 그렇게 해두었다 (`lib/env.mjs`).
+> **여기서 가장 많이 막힌다.**
+> Vercel 의 **Sensitive(Secret, 자물쇠 아이콘) 변수는 빌드 단계에 주입되지 않는다.**
+> 서버리스 함수가 요청을 처리할 때만 들어온다.
+>
+> 그런데 `NEXT_PUBLIC_` 값은 Next 가 **빌드 시점에 클라이언트 번들에 그대로 박아
+> 넣는다.** 그래서 이 셋을 Secret 으로 만들면 빌드가 값을 못 찾고 실패한다.
+> 반드시 **Config** 여야 한다. anon 키는 원래 브라우저에 노출되는 값이고
+> RLS 가 보호하므로 Config 로 두는 것이 옳다.
+>
+> 한 번 Secret 으로 만든 변수는 값을 다시 볼 수 없어 Type 을 바꿀 수 없다.
+> **지우고 Config 로 다시 만들어야 한다.**
+
+`SUPABASE_SERVICE_ROLE_KEY` 와 `ADMIN_PASSWORD` 는 서버에서만 읽으므로 Secret 이
+맞다. 빌드 로그에 "빌드에서 안 보입니다" 라고 뜨는 것은 정상이며, 빌드를 막지 않는다.
+
+환경 선택은 **Production 과 Preview** 면 충분하다. Development 는 `vercel dev` 를
+쓸 때만 필요하고, 로컬은 `.env.local` 을 쓴다.
+
+`NEXT_PUBLIC_` 셋 중 하나라도 빠지면 **빌드가 멈추고 어느 변수인지 이름을 찍는다**
+(`scripts/check-env.mjs`). 배포된 다음 첫 방문자의 요청에서 500 으로 죽는 것보다 낫다.
 
 ### 3.3 도메인 확정 후
 
@@ -203,7 +217,6 @@ Hobby 플랜은 리전을 하나만 지정할 수 있다.
 
 ## 아직 없는 것
 
-- `main` 브랜치 — 위 3.1 참고
 - 커스텀 도메인
 - CI — 지금은 Vercel 빌드가 사실상 유일한 검사다. `npm run typecheck` 를
   PR 에서 돌리는 워크플로가 있으면 좋지만 아직 없다.
