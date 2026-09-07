@@ -10,6 +10,7 @@ import {
   validateHandle,
 } from '@/lib/auth';
 import { claimInvite } from '@/lib/contributors';
+import { keyLoginEmail } from '@/lib/keyLogin';
 import { adminClient, sessionClient } from '@/lib/supabase';
 
 export interface AuthState {
@@ -92,6 +93,46 @@ export async function requestSignupLink(_prev: AuthState, form: FormData): Promi
   }
 
   return { sent: email.email };
+}
+
+/* --- 편집실 열쇠 (임시) -------------------------------------------------
+ *
+ * 매직링크 왕복 없이 비밀번호 하나로 편집장 계정에 로그인한다.
+ * ADMIN_EMAIL 이 설정돼 있을 때만 존재하고, 지우면 화면과 이 액션이 함께 사라진다.
+ *
+ * 왜 "비밀번호를 맞히면 관리자 권한을 준다" 가 아니라 "그 계정으로 로그인한다"
+ * 인가. 전자는 M2-1 이 막은 자가 승격 경로를 애플리케이션에 다시 뚫는 것이고,
+ * 그러면 auth.uid() 가 비어 글의 필자를 세션에서 꺼낼 수 없어 service_role 쓰기가
+ * 되살아난다. 후자는 진짜 세션을 만들기 때문에 RLS·초대제·컬럼 GRANT 가 전부
+ * 그대로 작동한다. 사람이 겪는 절차는 같다 — 비밀번호 한 칸.
+ *
+ * 한계를 분명히 해둔다. 이건 부트스트랩용 지름길이지 인증 설계가 아니다.
+ * 열쇠가 새면 지면 전체가 넘어간다. 다른 사람을 초대해 그들이 자기 계정으로
+ * 로그인하기 시작하면 ADMIN_EMAIL 을 지울 것.
+ */
+
+export async function signInWithKey(_prev: AuthState, form: FormData): Promise<AuthState> {
+  const email = keyLoginEmail();
+  // 환경변수를 지우면 화면뿐 아니라 이 경로도 함께 닫힌다. 화면만 감추면
+  // 액션은 여전히 살아 있어 아무나 직접 호출할 수 있다.
+  if (!email) return { error: '열쇠 로그인이 꺼져 있습니다.' };
+
+  const password = String(form.get('password') ?? '');
+  if (!password) return { error: '열쇠를 입력하세요.' };
+
+  const supabase = await sessionClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    console.error('[auth] key login failed:', error.message);
+    // 무제한으로 빠르게 시도하는 것만 늦춘다. 진짜 방어는 Supabase 쪽 인증
+    // 요청 제한이고, 이건 그 앞에 두는 얇은 턱이다.
+    await new Promise((r) => setTimeout(r, 700));
+    return { error: '열쇠가 맞지 않습니다.' };
+  }
+
+  revalidatePath('/');
+  redirect(safeNext(String(form.get('next') ?? '/')));
 }
 
 /* --- 핸들 재선택 (가입 중 충돌했을 때) ---------------------------------- */

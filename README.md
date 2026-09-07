@@ -8,6 +8,7 @@
 기고 권한을 켠 사람만 쓸 수 있습니다 (M2-1 — 아래 [기고 권한](#기고-권한) 참고).
 
 배포 절차는 [DEPLOY.md](./DEPLOY.md).
+보안 모델은 [docs/RLS.md](./docs/RLS.md), 작업 이력은 [docs/](./docs/).
 
 ---
 
@@ -112,9 +113,30 @@ npm run db:admin -- 내주소@example.com   # 편집장 계정 + profile + 권�
    그 주소로 가입하는 순간 자동으로 켜진다. **메일은 나가지 않는다** — 명단에
    적어둘 뿐이고, 초대 사실은 편집장이 직접 알린다.
 
-`is_admin` 은 애플리케이션 어디에서도 켤 수 없다. Supabase 대시보드나
-`supabase/seed.sql` 로만 지정한다 — 편집장을 앱에서 만들 수 있으면 그 경로가
-곧 권한 상승 경로가 되기 때문이다.
+`is_admin` 은 애플리케이션 어디에서도 켤 수 없다. `npm run db:admin` 이나 대시보드로만
+지정한다 — 편집장을 앱에서 만들 수 있으면 그 경로가 곧 권한 상승 경로가 되기 때문이다.
+
+### 편집실 열쇠 — 임시
+
+매직링크 메일 왕복이 번거로울 때 쓰는 지름길이다. 비밀번호 한 칸으로 편집장 계정에
+로그인한다.
+
+```bash
+npm run db:admin -- me@example.com --password '정할비밀번호'
+# .env.local 에
+ADMIN_EMAIL=me@example.com
+```
+
+`ADMIN_EMAIL` 이 있을 때만 `/login` 에 "편집실 열쇠" 칸이 생기고, 지우면 화면과 서버
+액션이 함께 닫힌다. 빌드할 때마다 켜져 있다고 경고한다.
+
+**"비밀번호를 맞히면 관리자 권한을 준다" 가 아니라 "그 계정으로 로그인한다" 이다.**
+전자는 M2-1 이 막은 자가 승격 경로를 앱에 다시 뚫는 것이고, `auth.uid()` 가 비어
+글의 필자를 세션에서 꺼낼 수 없어 service_role 쓰기까지 되살아난다. 후자는 진짜
+세션이라 RLS·초대제·컬럼 GRANT 가 전부 그대로 작동한다.
+
+**임시 통로다.** 열쇠가 새면 지면 전체가 넘어간다. 다른 사람을 초대해 각자 자기
+계정으로 들어가기 시작하면 `ADMIN_EMAIL` 을 지울 것.
 
 ---
 
@@ -147,12 +169,14 @@ components/
   NeedsInvite.tsx     초대 없이 /write 에 온 사람      ← M2-1
   Markdown.tsx        본문 렌더러 (원시 HTML 비활성)
   auth/AuthNav.tsx    마스트헤드 로그인 표시 (클라이언트 — ISR 을 지키기 위해)
+  auth/KeyForm.tsx    편집실 열쇠 — 비밀번호 한 칸 (임시)       ← M2-2
   editor/             초대 폼 · 권한 스위치            ← M2-1
 lib/
   site.ts             제호·태그라인
   supabase.ts         publicClient / sessionClient / adminClient
   supabaseBrowser.ts  브라우저 클라이언트
   auth.ts             세션·프로필 헬퍼, 핸들 규칙, canWrite/isEditor
+  keyLogin.ts         편집실 열쇠 켜짐/꺼짐 (임시)              ← M2-2
   format.ts           경로·날짜·숫자 표기 — 순수 함수만 ← 클라이언트도 쓴다
   posts.ts            공개 읽기 · 에디터 픽 · 필자 페이지
   authorPosts.ts      내 글 읽기 (세션 — RLS 가 소유권을 건다) ← M2-1
@@ -166,6 +190,9 @@ supabase/
   migrations/         ..._init · ..._auth · ..._lock_anon · ..._contrib
   check_rls.sql       권한·RLS 점검 (PASS/FAIL 표)
   seed.sql
+docs/
+  RLS.md              보안 모델 — 정책·컬럼 GRANT·함정·확인법
+  2026-09-07-작업기록.md
 ```
 
 `lib/format.ts` 가 따로 있는 이유: `lib/posts.ts` 는 `lib/supabase.ts` 를 통해
@@ -300,6 +327,8 @@ ISR 이 사라진다.** 캐시된 지면에 개인 상태를 섞지 않는다는
 - [ ] Supabase 무료 티어 비활성 프로젝트 일시정지 정책 확인 (§2.2)
 - [ ] 제호 확정 — 지금은 "언젠가 (가제)". `lib/site.ts` 한 곳에 있다.
 - [ ] Vercel 연결
+- [ ] **`ADMIN_EMAIL` 지우기** — 다른 사람을 초대해 각자 자기 계정으로 들어가기
+      시작하면. 남겨두면 비밀번호 하나로 편집장이 되는 통로가 계속 열려 있다.
 
 ### 열기 전에 반드시
 

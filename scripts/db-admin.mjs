@@ -4,9 +4,14 @@
  *
  *   npm run db:admin -- me@example.com
  *   npm run db:admin -- me@example.com --handle jiwon --name 배지원
+ *   npm run db:admin -- me@example.com --password '열쇠로쓸비밀번호'
  *
  * 하는 일: 그 주소의 계정이 없으면 만들고, profile 이 없으면 만들고,
  * is_admin 과 can_write 를 켠다. 이미 다 돼 있으면 아무것도 바꾸지 않는다.
+ *
+ * --password 를 주면 그 계정의 비밀번호를 설정한다. .env.local 에
+ * ADMIN_EMAIL 을 이 주소로 넣으면 /login 의 "편집실 열쇠" 칸에 이 비밀번호만
+ * 쳐서 매직링크 왕복 없이 들어갈 수 있다(임시 통로 — 초대가 끝나면 지울 것).
  *
  * 왜 필요한가: is_admin 은 애플리케이션 어디에서도 켤 수 없다 — 앱에서 편집장을
  * 만들 수 있으면 그 경로가 곧 권한 상승 경로가 되기 때문이다. 그래서 첫 편집장은
@@ -40,7 +45,15 @@ const flag = (name) => {
 };
 
 if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-  console.error('사용법: npm run db:admin -- me@example.com [--handle 핸들] [--name 이름]');
+  console.error(
+    '사용법: npm run db:admin -- me@example.com [--handle 핸들] [--name 이름] [--password 열쇠]',
+  );
+  process.exit(2);
+}
+
+const password = flag('password');
+if (password !== null && password.length < 8) {
+  console.error('--password 는 8자 이상이어야 합니다. 이 값 하나로 지면 전체가 열립니다.');
   process.exit(2);
 }
 
@@ -78,11 +91,20 @@ async function main() {
 
   if (user) {
     console.log(`계정 있음   ${email}`);
+    if (password) {
+      const { error } = await db.auth.admin.updateUserById(user.id, { password });
+      if (error) throw new Error(`비밀번호를 바꾸지 못했습니다: ${error.message}`);
+      console.log('비밀번호 설정');
+    }
   } else {
-    const { data, error } = await db.auth.admin.createUser({ email, email_confirm: true });
+    const { data, error } = await db.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      ...(password ? { password } : {}),
+    });
     if (error) throw new Error(`계정을 만들지 못했습니다: ${error.message}`);
     user = data.user;
-    console.log(`계정 생성   ${email}`);
+    console.log(`계정 생성   ${email}${password ? ' (비밀번호 설정)' : ''}`);
   }
 
   // 2. profile
@@ -95,7 +117,8 @@ async function main() {
 
   if (existing) {
     if (existing.is_admin && existing.can_write) {
-      console.log(`이미 편집장  @${existing.handle} (${existing.display_name}) — 바꿀 것 없음`);
+      console.log(`이미 편집장  @${existing.handle} (${existing.display_name})`);
+      hint();
       return;
     }
     const { error } = await db
@@ -104,6 +127,7 @@ async function main() {
       .eq('id', user.id);
     if (error) throw new Error(`권한을 켜지 못했습니다: ${error.message}`);
     console.log(`편집장 지정  @${existing.handle} (${existing.display_name})`);
+    hint();
     return;
   }
 
@@ -138,9 +162,25 @@ async function main() {
   }
 
   console.log(`편집장 생성  @${handle} (${name})`);
+  hint();
+}
+
+function hint() {
   console.log('');
-  console.log(`이제 /login 에서 ${email} 로 매직링크를 받아 로그인하면`);
-  console.log('마스트헤드에 "쓰기" 가 뜨고 /editor 가 열립니다.');
+  if (password) {
+    console.log('.env.local 에 이 줄을 넣으면 /login 에 "편집실 열쇠" 칸이 생깁니다:');
+    console.log('');
+    console.log(`  ADMIN_EMAIL=${email}`);
+    console.log('');
+    console.log('그 칸에 방금 정한 비밀번호만 치면 매직링크 없이 들어갑니다.');
+    console.log('임시 통로입니다 — 다른 사람을 초대하고 나면 ADMIN_EMAIL 을 지우세요.');
+  } else {
+    console.log(`/login 에서 ${email} 로 매직링크를 받아 로그인하면`);
+    console.log('마스트헤드에 "쓰기" 가 뜨고 /editor 가 열립니다.');
+    console.log('');
+    console.log('메일 왕복이 번거로우면 --password 로 열쇠를 정할 수 있습니다:');
+    console.log(`  npm run db:admin -- ${email} --password '정할비밀번호'`);
+  }
 }
 
 main().catch((err) => {
