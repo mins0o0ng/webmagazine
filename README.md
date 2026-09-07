@@ -56,16 +56,41 @@ npm run dev
 
 ### Supabase 준비
 
-1. Supabase 프로젝트를 만들고 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY` 를 `.env.local` 에 넣는다.
-2. SQL Editor 에서 `supabase/migrations/` 의 네 파일을 이름 순서대로 실행한다.
-3. **Authentication → Users → Add user** 로 편집장 계정을 하나 만든다.
-4. 생성된 UUID 를 `supabase/seed.sql` 에 넣고 실행한다.
-5. `supabase/check_rls.sql` 을 실행해 결과가 전부 PASS 인지 확인한다.
+Supabase 프로젝트를 만들고 `.env.local` 에 네 값을 넣은 뒤, 명령 두 줄이면 끝난다.
 
-3~4번이 필요한 이유: `is_admin` 은 애플리케이션 어디에서도 켤 수 없다(그게
-곧 권한 상승 경로가 되므로). 편집실에 들어가 다른 사람을 초대할 수 있는 첫
-계정은 반드시 SQL 로 만들어야 한다. 이 계정은 그대로 매직링크 로그인 계정이 된다.
+```bash
+npm run db:migrate                 # supabase/migrations/ 전부, 순서대로
+npm run db:admin -- 내주소@example.com   # 편집장 계정 + profile + 권한
+```
+
+`.env.local` 에 필요한 값 (전부 대시보드에서 복사):
+
+| 변수 | 어디서 | 쓰는 곳 |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Settings → API | 앱 전체 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Settings → API | 앱 전체 (RLS 가 보호) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Settings → API | 편집실·초대·`db:admin` |
+| `DATABASE_URL` | Settings → Database → Connection string (URI) | **`db:migrate` 만** |
+
+`db:migrate` 는 실행 이력을 DB 의 `schema_migrations` 에 남긴다. 몇 번을 돌려도
+안 돌린 것만 돌아가므로, 마이그레이션이 추가되면 다시 실행하면 된다.
+`--dry` 를 붙이면 무엇이 돌아갈지만 보여준다.
+
+`DATABASE_URL` 이 따로 필요한 이유: service_role 키는 PostgREST 를 통과하므로
+테이블만 다룰 수 있고 DDL 은 못 돌린다. 이 값은 마이그레이션 실행기 전용이고
+앱 코드는 읽지 않는다 — Vercel 에 넣을 필요도 없다.
+
+`db:admin` 이 따로 필요한 이유: **`is_admin` 은 애플리케이션 어디에서도 켤 수 없다.**
+앱에서 편집장을 만들 수 있으면 그 경로가 곧 권한 상승 경로가 되기 때문이다.
+그래서 첫 편집장은 반드시 앱 바깥에서 만들어야 하고, 이 계정이 없으면 아무도
+`/editor` 에 들어가지 못해 누구도 기고 권한을 받을 수 없다. 이 명령은 계정이
+없으면 만들고, profile 이 없으면 만들고, 권한을 켠다. 이미 다 돼 있으면 아무것도
+바꾸지 않는다.
+
+마지막으로 `supabase/check_rls.sql` 을 SQL Editor 에서 한 번 돌려 전부 PASS 인지 본다.
+
+> `supabase/seed.sql` 은 남겨 두었다. SQL 로 직접 하고 싶을 때를 위한 것이고,
+> `npm run db:admin` 을 쓰면 필요 없다.
 
 ### 기고 권한
 
@@ -115,7 +140,9 @@ app/
   feed.xml/           RSS
 components/
   PostCard.tsx        순번 붙은 카드. 썸네일 없이도 성립 ← M1 전제 조건
-  PostEditor.tsx      마크다운 textarea + 미리보기
+  PostEditor.tsx      마크다운 textarea + 미리보기 + 자동저장   ← M2-2
+  MarkdownToolbar.tsx 굵게·제목·인용·링크·이미지 등 여덟 개      ← M2-2
+  useAutosave.ts      localStorage 복구 + 초안 서버 자동저장     ← M2-2
   MyPostRow.tsx       /me 의 글 한 줄 + 삭제 확인      ← M2-1
   NeedsInvite.tsx     초대 없이 /write 에 온 사람      ← M2-1
   Markdown.tsx        본문 렌더러 (원시 HTML 비활성)
@@ -132,6 +159,8 @@ lib/
   contributors.ts     편집실 읽기·쓰기 (service role)  ← M2-1
   env.mjs             빌드 시점 환경변수 검사
 scripts/
+  db-migrate.mjs      마이그레이션 실행기 (이력은 schema_migrations) ← M2-2
+  db-admin.mjs        편집장 지정 — 계정·profile·권한 한 번에    ← M2-2
   rls-test.mjs        정책 우회 테스트 ← M2 / M2-1 완료 기준
 supabase/
   migrations/         ..._init · ..._auth · ..._lock_anon · ..._contrib
@@ -283,6 +312,23 @@ ISR 이 사라진다.** 캐시된 지면에 개인 상태를 섞지 않는다는
 - [ ] Supabase Authentication → URL Configuration 에 Redirect URL 등록
       ([DEPLOY.md](./DEPLOY.md) 1.5)
 
+### M2-2 에서 한 것 (에디터·셋업)
+
+**셋업이 명령 두 줄이 됐다.** 마이그레이션 네 개를 SQL Editor 에 하나씩 붙여넣고,
+대시보드에서 계정을 만들고, UUID 를 복사해 `seed.sql` 을 고치고, 다시 실행하던
+과정이 `npm run db:migrate` 와 `npm run db:admin -- 주소` 로 줄었다. 사람이
+"몇 번까지 돌렸더라" 를 기억할 일이 없어진 것이 핵심이다.
+
+**자동저장이 붙었다.** 브라우저(localStorage, 0.6초)와 서버(초안일 때만, 3초 멈추면)
+두 겹이다. 새 글은 첫 자동저장에서 초안이 만들어지고 주소가 `/write/<id>` 로
+바뀌므로 새로고침해도 이어진다. **발행된 글은 서버 자동저장을 하지 않는다** —
+지면에 나가 있는 글을 사람이 저장을 누르지도 않았는데 덮어쓰면 안 되기 때문이고,
+그 경우에도 브라우저 초안 복구는 그대로 돈다.
+
+**마크다운 툴바를 여덟 개만 뒀다.** 굵게·기울임·소제목·인용·목록·링크·이미지·구분선.
+리치 에디터를 쓰지 않는다는 §6 M1 의 결정은 유지하되, 초대제로 외부 필자를
+받기 시작한 이상 `##` 와 `![]()` 를 외우게 하는 건 다른 문제라 그 사이만 메웠다.
+
 ### M2-1 이 남긴 것
 
 **초대 사실을 알리는 건 사람 몫이다.** `/editor` 의 초대는 명단에 적어둘 뿐
@@ -302,6 +348,16 @@ ISR 이 사라진다.** 캐시된 지면에 개인 상태를 섞지 않는다는
 **`/editor` 명단에 페이지네이션이 없다.** 200명에서 자른다. 가입자가 그 이상으로
 늘면 검색을 붙여야 한다.
 
+**이미지 업로드는 여전히 없다.** 툴바의 "이미지" 버튼은 `![](https://)` 를 넣어줄
+뿐이고, 주소는 사람이 직접 채워야 한다. 초대제로 외부 필자를 모셔놓고 "이미지는
+알아서 어딘가 올리고 URL 주세요" 라고 하는 상태다. Supabase Storage 를 붙이는
+작업이며, `next/image` 전환도 이 결정 다음이라 둘이 묶여 있다(§8 미결정).
+
+**미리보기가 실제 지면과 다르다.** `PostEditor.module.css` 의 `.preview` 와
+`app/p/[id]/page.module.css` 의 `.body` 가 서로 다른 스타일이다. 2b 는 활자 위계가
+디자인의 전부라서, 미리보기에서 멀쩡하던 글이 발행하면 다르게 보인다.
+지면 CSS 를 공유 모듈로 빼면 해결된다.
+
 ### 이후 마일스톤
 
 M3 (좋아요) · M3-1 (댓글) · M4 (AI 썸네일)
@@ -320,7 +376,11 @@ M3 을 열기 전에 결정해야 할 것이 하나 남아 있다: **비로그�
 ## 스크립트
 
 ```bash
-npm run dev        # 개발 서버
-npm run build      # 프로덕션 빌드 (Supabase 연결 필요)
-npm run typecheck  # tsc --noEmit
+npm run dev         # 개발 서버
+npm run build       # 프로덕션 빌드 (Supabase 연결 필요)
+npm run typecheck   # tsc --noEmit
+
+npm run db:migrate  # 마이그레이션 (안 돌린 것만). --dry 로 미리보기
+npm run db:admin -- me@example.com   # 편집장 지정
+npm run test:rls    # RLS 정책 우회 테스트 ← M2 / M2-1 완료 기준
 ```

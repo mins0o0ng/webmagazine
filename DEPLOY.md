@@ -27,8 +27,21 @@ Supabase 프로젝트와 Vercel 프로젝트 **생성 자체는 계정 로그인
 
 **A. 대시보드 (가장 간단)**
 
-SQL Editor → New query → `supabase/migrations/` 의 파일을 **이름 순서대로** 하나씩
-붙여넣고 Run.
+```bash
+npm run db:migrate           # 안 돌린 것만, 이름 순서대로
+npm run db:migrate -- --dry  # 무엇이 돌아갈지만 본다
+```
+
+`.env.local` 에 `DATABASE_URL` 이 있어야 한다 — Settings → Database →
+Connection string → **URI** 를 복사하고 `[YOUR-PASSWORD]` 자리에 프로젝트를 만들 때
+정한 데이터베이스 비밀번호를 넣는다(잊었으면 같은 화면에서 재설정).
+
+service_role 키로는 안 된다. 그 키는 PostgREST 를 통과하므로 테이블만 다루고
+DDL 은 못 돌린다. 이 값은 마이그레이션 실행기 전용이라 **Vercel 에는 넣지 않는다.**
+
+실행 이력은 DB 의 `schema_migrations` 에 남는다. 파일 하나가 통째로 한 트랜잭션이라
+중간에 실패하면 그 파일은 아무것도 적용되지 않고, 고친 뒤 다시 돌리면 남은
+것부터 이어서 실행한다.
 
 ```
 20260906000000_init.sql        스키마 · 카운터 트리거 · RLS
@@ -37,34 +50,32 @@ SQL Editor → New query → `supabase/migrations/` 의 파일을 **이름 순�
 20260907000000_contrib.sql     기고 권한 · 초대장 · updated_at 트리거 수정  ← M2-1
 ```
 
-순서를 지킬 것. 뒤의 파일이 앞의 정책을 교체한다.
+**B. 손으로 (스크립트를 못 쓰는 상황이라면)**
 
-**B. CLI (이후 마이그레이션을 쌓을 거라면 이쪽)**
-
-```bash
-npm i -g supabase
-supabase login
-supabase link --project-ref <프로젝트 ref>   # 대시보드 URL 에 있는 문자열
-supabase db push
-```
-
-`supabase/config.toml` 의 `major_version` 이 실제 프로젝트의 Postgres 버전과
-다르면 `db diff` 가 어긋난다. Settings → Database 에서 확인하고 맞출 것.
+SQL Editor → New query → 위 파일을 **이름 순서대로** 하나씩 붙여넣고 Run.
+순서를 지킬 것 — 뒤의 파일이 앞의 정책을 교체한다.
 
 ### 1.3 편집장 계정
 
 **`is_admin` 은 애플리케이션 어디에서도 켤 수 없다.** 앱에서 편집장을 만들 수
 있으면 그 경로가 곧 권한 상승 경로가 되기 때문이다. 그래서 첫 편집장은 반드시
-SQL 로 만들어야 하고, 이 계정이 없으면 아무도 `/editor` 에 들어갈 수 없어
+앱 바깥에서 만들어야 하고, 이 계정이 없으면 아무도 `/editor` 에 들어갈 수 없어
 **누구도 기고 권한을 받지 못한다.**
 
-1. Authentication → Users → **Add user** → Create new user
-   (실제로 쓸 이메일. Auto Confirm User 체크)
-2. 생성된 행의 **UID** 를 복사
-3. SQL Editor 에서 `supabase/seed.sql` 을 열어 UUID 자리를 그 값으로 바꾸고 Run
+```bash
+npm run db:admin -- 내주소@example.com
+npm run db:admin -- 내주소@example.com --handle jiwon --name 배지원   # 핸들·이름 지정
+```
 
-이 계정은 그대로 매직링크 로그인 계정이 된다. 배포 후 그 주소로 `/login` 에서
+계정이 없으면 만들고, profile 이 없으면 만들고, `is_admin` 과 `can_write` 를 켠다.
+이미 다 돼 있으면 아무것도 바꾸지 않는다. `SUPABASE_SERVICE_ROLE_KEY` 만 있으면
+되고 `DATABASE_URL` 은 필요 없다. 핸들을 안 주면 이메일 앞부분에서 만든다.
+
+이 계정은 그대로 매직링크 로그인 계정이 된다. 그 주소로 `/login` 에서
 로그인하면 마스트헤드에 "쓰기" 가 뜨고 `/editor` 가 열린다.
+
+> 손으로 하고 싶으면 대시보드 Authentication → Users → Add user 로 계정을 만들고
+> UID 를 `supabase/seed.sql` 에 넣어 SQL Editor 에서 실행해도 결과는 같다.
 
 ### 1.4 RLS 확인
 
@@ -144,7 +155,7 @@ Settings → API 에서 세 값을 가져온다.
 ## 2. 로컬에서 먼저 확인
 
 ```bash
-cp .env.example .env.local   # 위에서 모은 값 세 개
+cp .env.example .env.local   # 위에서 모은 값 네 개
 npm install
 npm run dev
 ```

@@ -107,14 +107,105 @@ export async function savePost(_prev: ActionState, form: FormData): Promise<Acti
   }
 
   // 온디맨드 무효화(§2.3): 발행하면 홈·카테고리·상세·필자 페이지가 60초를
-  // 기다리지 않고 갱신된다.
+  // 기다리지 않고 갱신된다. 서버 액션 안에서 부르므로 브라우저의 라우터 캐시도
+  // 함께 비워진다 — 발행 직후 홈으로 돌아가도 옛 지면이 보이지 않는다.
   revalidatePath('/');
   revalidatePath(`/category/${category}`);
   revalidatePath(`/p/${postId}`);
   revalidatePath(`/u/${authorHandle}`);
   revalidatePath('/feed.xml');
+  revalidatePath('/me');
 
   redirect(status === 'published' ? `/p/${postId}` : `/write/${postId}`);
+}
+
+export interface AutosaveResult {
+  /** 새 글이 처음 저장되며 받은 id. 이후 자동저장은 이 id 로 이어진다. */
+  id?: number;
+  savedAt?: number;
+  error?: string;
+  /** 저장하지 않고 넘어갔다는 뜻. 오류가 아니다. */
+  skipped?: boolean;
+}
+
+/**
+ * 초안 자동저장 (M2-2).
+ *
+ * 왜 필요한가: 지금까지 PostEditor 는 그냥 useState 였다. 3천 자짜리 원고를 쓰다가
+ * 탭이 닫히거나 세션이 만료되면 통째로 사라진다. 긴 글을 받는 매체에서 이건
+ * 기능 부족이 아니라 결함이다 — 기고자가 한 번 겪으면 다시 쓰지 않는다.
+ *
+ * 규칙 두 가지가 중요하다.
+ *
+ *   1. **발행된 글은 자동저장하지 않는다.** 지면에 나가 있는 글을 사람이 저장을
+ *      누르지도 않았는데 덮어쓰면 안 된다. 발행글 수정 중의 안전망은 브라우저
+ *      쪽 초안 복구(useDraftRecovery)가 맡는다.
+ *   2. 제목이 없으면 저장하지 않는다. 빈 글이 /me 목록에 쌓이면 그 화면이
+ *      쓸모없어진다.
+ */
+export async function autosaveDraft(form: FormData): Promise<AutosaveResult> {
+  const gated = await gate();
+  if ('error' in gated) return { error: gated.error };
+  const { profile } = gated;
+
+  const rawId = String(form.get('id') ?? '');
+  const id = rawId ? Number(rawId) : null;
+  if (rawId && !Number.isSafeInteger(id)) return { error: '알 수 없는 글입니다.' };
+
+  const title = String(form.get('title') ?? '').trim();
+  const deck = String(form.get('deck') ?? '').trim();
+  const body = String(form.get('body') ?? '').trim();
+  const category = String(form.get('category') ?? '');
+  const thumbnailUrl = String(form.get('thumbnail_url') ?? '').trim();
+  const rawRatio = String(form.get('thumbnail_ratio') ?? '');
+
+  if (!title) return { skipped: true };
+
+  // deck·body 는 not null 이라 빈 문자열이라도 넣어야 행이 만들어진다.
+  // 사람이 저장을 누를 때는 savePost 가 제대로 된 문구로 막는다.
+  const payload = {
+    title,
+    deck: deck || '(부제를 아직 쓰지 않았습니다)',
+    body: body || ' ',
+    category: isCategory(category) ? category : 'essay',
+    thumbnail_url: thumbnailUrl || null,
+    thumbnail_ratio: thumbnailUrl
+      ? RATIOS.includes(rawRatio as ThumbRatio)
+        ? (rawRatio as ThumbRatio)
+        : null
+      : null,
+  };
+
+  const db = await sessionClient();
+
+  if (id) {
+    // 발행된 글인지 먼저 본다. RLS 상 본인 글만 읽히므로 이 조회 자체가 소유권 검사다.
+    const { data: current } = await db
+      .from('posts')
+      .select('status')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!current) return { error: '이 글을 저장할 권한이 없습니다.' };
+    if (current.status !== 'draft') return { skipped: true };
+
+    const { data, error } = await db.from('posts').update(payload).eq('id', id).select('id');
+    if (error) return { error: `자동저장에 실패했습니다: ${error.message}` };
+    if (!data || data.length === 0) return { error: '이 글을 저장할 권한이 없습니다.' };
+
+    // revalidatePath 를 부르지 않는다. 초안은 어느 캐시된 지면에도 나가지 않고,
+    // 몇 초마다 홈 캐시를 비우면 자동저장이 사이트 성능 문제가 된다.
+    return { id, savedAt: Date.now() };
+  }
+
+  const { data, error } = await db
+    .from('posts')
+    .insert({ ...payload, status: 'draft', author_id: profile.id })
+    .select('id')
+    .single();
+
+  if (error) return { error: `자동저장에 실패했습니다: ${error.message}` };
+  return { id: data.id as number, savedAt: Date.now() };
 }
 
 /**

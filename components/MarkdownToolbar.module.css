@@ -1,0 +1,36 @@
+/* 마크다운 툴바 — 디자인 2b. 도구 줄이므로 활자를 키우지 않고 괘선으로만 묶는다. */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-bottom: 0;
+}
+
+.button {
+  min-width: 32px;
+  padding: 6px 9px;
+  background: none;
+  border: var(--rule-thin) solid transparent;
+  border-radius: 0;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-sub);
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--color-rule);
+  color: var(--color-ink);
+}
+
+.sep {
+  width: var(--rule-thin);
+  align-self: stretch;
+  margin-inline: 6px;
+  background: var(--color-plate);
+}
