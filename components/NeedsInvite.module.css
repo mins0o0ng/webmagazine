@@ -1,0 +1,47 @@
+/* 초대 안내 — 디자인 2b. 카테고리 빈 화면(.empty)과 같은 판형이다. */
+
+.wrap {
+  max-width: 34rem;
+  padding-block: 96px;
+}
+
+.title {
+  margin-top: 20px;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-band);
+  line-height: var(--leading-band);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-ink);
+}
+
+.body {
+  margin-top: 16px;
+  font-size: var(--text-deck-lead);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 36px;
+  padding-top: 28px;
+  border-top: var(--rule-thick) solid var(--color-rule);
+}
+
+.primary,
+.secondary {
+  padding: 14px 28px;
+  border: var(--rule-thin) solid var(--color-rule);
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+}
+
+.primary {
+  background: var(--color-ink);
+  color: var(--color-band-ink);
+}

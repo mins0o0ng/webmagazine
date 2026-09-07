@@ -8,8 +8,24 @@ export interface Profile {
   display_name: string;
   bio: string | null;
   avatar_url: string | null;
+  /** 편집실 권한. 초대·권한 회수와 남의 글 수정까지 할 수 있다. */
   is_admin: boolean;
+  /** 기고 권한 (M2-1). 편집실에서만 켜고 끈다 — 본인은 못 바꾼다. */
+  can_write: boolean;
   created_at: string;
+}
+
+/**
+ * 아직 가입하지 않은 사람을 위한 초대장 (M2-1).
+ * 이메일이 들어 있으므로 service_role 로만 읽는다. RLS 상 정책이 하나도 없다.
+ */
+export interface ContributorInvite {
+  email: string;
+  note: string | null;
+  invited_by: string | null;
+  created_at: string;
+  accepted_at: string | null;
+  accepted_by: string | null;
 }
 
 export interface Post {

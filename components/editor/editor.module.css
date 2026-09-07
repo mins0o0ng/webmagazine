@@ -1,0 +1,175 @@
+/* 편집실 — 디자인 2b. 지면이 아니라 도구이므로 활자를 키우지 않는다. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 12rem;
+}
+
+.label {
+  font-size: var(--text-kicker);
+  font-weight: 700;
+  letter-spacing: var(--tracking-kicker);
+  color: var(--color-ink);
+}
+
+.hint {
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--color-meta);
+}
+
+.input {
+  padding: 11px 12px;
+  background: transparent;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  font-size: var(--text-deck-card);
+}
+
+/* --- 초대 폼 --------------------------------------------------------- */
+
+.inviteForm {
+  padding-top: 22px;
+}
+
+.inviteFields {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hintBlock {
+  margin-top: 14px;
+  font-size: var(--text-meta-sm);
+  line-height: var(--leading-deck);
+  color: var(--color-meta);
+}
+
+.primary {
+  padding: 11px 24px;
+  background: var(--color-ink);
+  color: var(--color-band-ink);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+/* 2b 에는 빨강도 초록도 없다. 알림은 시안 괘선 하나로만 구분한다. */
+.error,
+.ok {
+  margin-bottom: 16px;
+  padding: 11px 15px;
+  border-left: 3px solid var(--color-spot);
+  background: var(--color-plate);
+  font-size: var(--text-deck-card);
+}
+
+.ok {
+  border-left-color: var(--color-ink);
+}
+
+/* --- 권한 스위치 ------------------------------------------------------ */
+
+.toggleWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex: none;
+}
+
+.toggleOn,
+.toggleOff,
+.toggleFixed {
+  padding: 9px 16px;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* 켜져 있는 것은 먹으로 채워 한눈에 세어진다. */
+.toggleOn {
+  background: var(--color-ink);
+  color: var(--color-band-ink);
+}
+
+.toggleOff {
+  background: none;
+  border-color: var(--color-meta);
+  color: var(--color-meta);
+}
+
+.toggleOn:disabled,
+.toggleOff:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 편집장 줄. 누를 수 없으므로 버튼이 아니다. */
+.toggleFixed {
+  background: none;
+  border-style: dashed;
+  border-color: var(--color-meta);
+  color: var(--color-meta);
+  cursor: default;
+}
+
+.toggleError {
+  max-width: 18rem;
+  font-size: var(--text-meta-sm);
+  line-height: var(--leading-deck);
+  color: var(--color-spot);
+  text-align: right;
+}
+
+/* --- 초대장 한 줄 ----------------------------------------------------- */
+
+.invite {
+  display: flex;
+  align-items: center;
+  gap: var(--col-gap);
+  padding-block: 16px;
+  border-bottom: var(--rule-thin) solid var(--color-rule);
+}
+
+.inviteMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.inviteEmail {
+  font-size: var(--text-deck-card);
+  font-weight: 700;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.inviteMeta {
+  margin-top: 5px;
+  font-size: var(--text-meta-sm);
+  color: var(--color-meta);
+}
+
+@media (max-width: 40rem) {
+  .invite {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}

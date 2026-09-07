@@ -1,15 +1,8 @@
 import Link from 'next/link';
 import { PostCard } from '@/components/PostCard';
 import { categoryLabel } from '@/lib/categories';
-import {
-  formatCount,
-  formatDateFull,
-  getEditorsPick,
-  listMonthlyAuthors,
-  listPublished,
-  postPath,
-  type MonthlyAuthor,
-} from '@/lib/posts';
+import { authorPath, formatCount, formatDateFull, postPath } from '@/lib/format';
+import { getEditorsPick, listMonthlyAuthors, listPublished, type MonthlyAuthor } from '@/lib/posts';
 import { RATIO_CSS, type PostSummary } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -96,7 +89,13 @@ function LeadStory({ post }: { post: PostSummary }) {
 
         <div className={styles.leadMeta}>
           <span className={`avatar ${styles.leadAvatar}`} aria-hidden="true" />
-          <span className={styles.leadAuthor}>{post.author?.display_name}</span>
+          {post.author ? (
+            <Link href={authorPath(post.author.handle)} className={styles.leadAuthor}>
+              {post.author.display_name}
+            </Link>
+          ) : (
+            <span className={styles.leadAuthor} />
+          )}
           <time className={styles.leadDate} dateTime={post.published_at ?? undefined}>
             {formatDateFull(post.published_at)}
           </time>
@@ -129,7 +128,13 @@ function EditorsPick({ post }: { post: PostSummary }) {
         <p className={styles.bandDeck}>{post.deck}</p>
         <div className={styles.bandMeta}>
           <span className={`avatar ${styles.bandAvatar}`} aria-hidden="true" />
-          <span className={styles.bandAuthor}>{post.author?.display_name}</span>
+          {post.author ? (
+            <Link href={authorPath(post.author.handle)} className={styles.bandAuthor}>
+              {post.author.display_name}
+            </Link>
+          ) : (
+            <span className={styles.bandAuthor} />
+          )}
           <time className={styles.bandDate} dateTime={post.published_at ?? undefined}>
             {formatDateFull(post.published_at)}
           </time>
@@ -164,18 +169,22 @@ function MonthlyPeople({ people }: { people: MonthlyAuthor[] }) {
           <li key={person.handle} className={styles.person}>
             <span className={`avatar ${styles.personAvatar}`} aria-hidden="true" />
             <div>
-              {/* 필자 페이지 /u/[handle] 은 M2-1 이다. 그전까지 이름은 링크가 아니다. */}
-              <div className={styles.personName}>{person.display_name}</div>
+              <div className={styles.personName}>
+                <Link href={authorPath(person.handle)}>{person.display_name}</Link>
+              </div>
               <div className={styles.personCount}>글 {person.post_count}</div>
             </div>
           </li>
         ))}
 
+        {/* 이 지면은 초대받은 사람이 쓴다(M2-1). 그래서 이 자리는 /write 가 아니라
+            /signup 을 가리킨다 — 로그인도 안 한 사람을 글쓰기 화면에 보내면
+            "초대장이 없습니다" 를 만나고, 그건 초대가 아니라 거절로 읽힌다. */}
         <li className={styles.join}>
-          <Link href="/write" className={styles.joinMark} aria-hidden="true">
+          <Link href="/signup" className={styles.joinMark} aria-hidden="true">
             +
           </Link>
-          <Link href="/write" className={styles.joinLabel}>
+          <Link href="/signup" className={styles.joinLabel}>
             여기 서기
           </Link>
         </li>

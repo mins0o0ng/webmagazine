@@ -9,6 +9,7 @@ import {
   validateEmail,
   validateHandle,
 } from '@/lib/auth';
+import { claimInvite } from '@/lib/contributors';
 import { adminClient, sessionClient } from '@/lib/supabase';
 
 export interface AuthState {
@@ -119,8 +120,11 @@ export async function completeProfile(_prev: AuthState, form: FormData): Promise
     return { error: `저장에 실패했습니다: ${error.message}` };
   }
 
+  // 콜백과 같은 처리다. 핸들이 겹쳐 이 화면으로 온 사람도 초대는 그대로 유효하다.
+  const invited = await claimInvite(user.email, user.id);
+
   revalidatePath('/');
-  redirect('/');
+  redirect(invited ? '/write' : '/');
 }
 
 /* 로그아웃은 서버 액션이 아니라 브라우저 클라이언트에서 처리한다

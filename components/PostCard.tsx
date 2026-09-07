@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { categoryLabel } from '@/lib/categories';
-import { formatCount, formatDateShort, postPath } from '@/lib/posts';
+import { authorPath, formatCount, formatDateShort, postPath } from '@/lib/format';
 import { RATIO_CSS, type PostSummary, type ThumbRatio } from '@/lib/types';
 import styles from './PostCard.module.css';
 
@@ -10,9 +10,11 @@ interface Props {
   index?: number;
   /** 썸네일 비율이 저장돼 있지 않을 때 쓸 기본값. */
   fallbackRatio?: ThumbRatio;
+  /** 필자명을 /u/[handle] 로 걸지 여부. 필자 페이지 안에서는 끈다 (M2-1). */
+  linkAuthor?: boolean;
 }
 
-export function PostCard({ post, index, fallbackRatio = '3:4' }: Props) {
+export function PostCard({ post, index, fallbackRatio = '3:4', linkAuthor = true }: Props) {
   const thumb = post.thumbnail_url;
   const hasThumb = thumb !== null && thumb !== '';
   const ratio = post.thumbnail_ratio ?? fallbackRatio;
@@ -50,7 +52,18 @@ export function PostCard({ post, index, fallbackRatio = '3:4' }: Props) {
 
       <div className={`${styles.meta} ${styles.metaPush}`}>
         <span className={`avatar ${styles.avatar}`} aria-hidden="true" />
-        <span className={styles.author}>{post.author?.display_name}</span>
+        {linkAuthor && post.author ? (
+          // .titleLink::after 가 카드 전체를 덮으므로 이 링크는 그 위로 올려야
+          // 클릭이 닿는다(.authorLink 의 z-index).
+          <Link
+            href={authorPath(post.author.handle)}
+            className={`${styles.author} ${styles.authorLink}`}
+          >
+            {post.author.display_name}
+          </Link>
+        ) : (
+          <span className={styles.author}>{post.author?.display_name}</span>
+        )}
         <time className={styles.date} dateTime={post.published_at ?? undefined}>
           {formatDateShort(post.published_at)}
         </time>
