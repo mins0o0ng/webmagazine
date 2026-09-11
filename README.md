@@ -116,6 +116,24 @@ npm run db:admin -- 내주소@example.com   # 편집장 계정 + profile + 권�
 `is_admin` 은 애플리케이션 어디에서도 켤 수 없다. `npm run db:admin` 이나 대시보드로만
 지정한다 — 편집장을 앱에서 만들 수 있으면 그 경로가 곧 권한 상승 경로가 되기 때문이다.
 
+### 원고를 넣는 세 가지 경로
+
+| 경로 | 언제 |
+|---|---|
+| `/write` | 사이트에서 직접 쓴다. 자동저장·툴바·미리보기 |
+| `/write/import` | **노션 등에 써둔 글을 붙여넣는다.** 여러 편을 한 번에 초안으로 |
+| `supabase/seed_posts.sql` | ~~레거시~~ — M2-3 이후로는 쓰지 않는다 |
+
+**글을 발행하는 데 SQL 은 필요 없다.** `npm run db:migrate` 는 최초 1회 스키마
+세팅이고, 그 뒤로는 화면에서 끝난다. M1 때 원고를 INSERT 문으로 옮기던 경로
+(`seed_posts.sql`)가 "글 한 편 올리려면 SQL 을 짠다" 는 인상을 남겼는데,
+`/write/import` 가 그 경로를 대신한다.
+
+가져오기는 **반드시 초안으로** 들어간다. 발행은 각 글을 열어 부제와 카테고리를
+확인한 뒤에 누른다 — 그 둘은 편집 결정이지 파서가 정할 일이 아니다.
+쪼개는 규칙은 화면의 "쪼개는 규칙"에 접혀 있고, 저장 전에 몇 편이 어떻게
+인식됐는지 미리 보여준다.
+
 ### 편집실 열쇠 — 임시
 
 매직링크 메일 왕복이 번거로울 때 쓰는 지름길이다. 비밀번호 한 칸으로 편집장 계정에
@@ -151,6 +169,7 @@ app/
   p/[id]/             글 상세
   category/[slug]/    카테고리 목록 (ISR 60초)
   write/              새 글 · 수정 · 서버 액션 (기고 권한 필요)
+  write/import/       원고 붙여넣어 초안으로 들이기      ← M2-3
   u/[handle]/         필자 페이지 (ISR 60초)          ← M2-1
   me/                 내 글 — 초안·발행·삭제 (동적)   ← M2-1
   editor/             편집실 — 초대·권한 관리 (동적)  ← M2-1
@@ -166,6 +185,7 @@ components/
   MarkdownToolbar.tsx 굵게·제목·인용·링크·이미지 등 여덟 개      ← M2-2
   useAutosave.ts      localStorage 복구 + 초안 서버 자동저장     ← M2-2
   MyPostRow.tsx       /me 의 글 한 줄 + 삭제 확인      ← M2-1
+  ImportForm.tsx      붙여넣기 + 쪼갠 결과 미리보기     ← M2-3
   NeedsInvite.tsx     초대 없이 /write 에 온 사람      ← M2-1
   Markdown.tsx        본문 렌더러 (원시 HTML 비활성)
   auth/AuthNav.tsx    마스트헤드 로그인 표시 (클라이언트 — ISR 을 지키기 위해)
@@ -178,6 +198,7 @@ lib/
   auth.ts             세션·프로필 헬퍼, 핸들 규칙, canWrite/isEditor
   keyLogin.ts         편집실 열쇠 켜짐/꺼짐 (임시)              ← M2-2
   format.ts           경로·날짜·숫자 표기 — 순수 함수만 ← 클라이언트도 쓴다
+  importMarkdown.ts   붙여넣은 원고를 글 단위로 쪼갠다   ← M2-3
   posts.ts            공개 읽기 · 에디터 픽 · 필자 페이지
   authorPosts.ts      내 글 읽기 (세션 — RLS 가 소유권을 건다) ← M2-1
   contributors.ts     편집실 읽기·쓰기 (service role)  ← M2-1

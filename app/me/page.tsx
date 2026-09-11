@@ -40,9 +40,16 @@ export default async function MePage() {
             </Link>
           )}
           {mayWrite && (
-            <Link href="/write" className={styles.primary}>
-              새 글
-            </Link>
+            <>
+              {/* 노션 등에 써둔 원고를 붙여넣어 초안으로 들이는 경로(M2-3).
+                  이게 supabase/seed_posts.sql 같은 파일을 대신한다. */}
+              <Link href="/write/import" className={styles.secondary}>
+                가져오기
+              </Link>
+              <Link href="/write" className={styles.primary}>
+                새 글
+              </Link>
+            </>
           )}
         </div>
       </header>

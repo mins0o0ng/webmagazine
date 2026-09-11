@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { canWrite, currentProfile } from '@/lib/auth';
 import { isCategory } from '@/lib/categories';
+import { parseDrafts } from '@/lib/importMarkdown';
 import { sessionClient } from '@/lib/supabase';
 import type { PostStatus, Profile, ThumbRatio } from '@/lib/types';
 
@@ -117,6 +118,67 @@ export async function savePost(_prev: ActionState, form: FormData): Promise<Acti
   revalidatePath('/me');
 
   redirect(status === 'published' ? `/p/${postId}` : `/write/${postId}`);
+}
+
+export interface ImportState {
+  error?: string;
+  /** 만들어진 초안. 화면이 여기에 바로 링크를 건다. */
+  created?: { id: number; title: string; warnings: string[] }[];
+}
+
+/**
+ * 붙여넣은 원고를 초안으로 만든다 (M2-3).
+ *
+ * 반드시 draft 로 들어간다. 발행은 사람이 각 글을 열어 부제와 카테고리를 채운 뒤
+ * 누른다 — 그 둘은 편집 결정이지 파서가 정할 일이 아니다(seed_posts.sql 주석).
+ *
+ * 이 액션이 supabase/seed_posts.sql 같은 파일을 대신한다. 원고를 넣겠다고
+ * INSERT 문을 손으로 짜고 SQL Editor 를 여는 경로는 여기서 끝난다.
+ */
+export async function importDrafts(_prev: ImportState, form: FormData): Promise<ImportState> {
+  const gated = await gate();
+  if ('error' in gated) return { error: gated.error };
+  const { profile } = gated;
+
+  const raw = String(form.get('text') ?? '');
+  if (!raw.trim()) return { error: '가져올 원고를 붙여넣으세요.' };
+
+  const drafts = parseDrafts(raw);
+  if (drafts.length === 0) return { error: '원고를 찾지 못했습니다.' };
+
+  // 한 번에 너무 많이 들어오면 실수다. 「산책자」 전체가 28편이라 넉넉히 잡는다.
+  if (drafts.length > 50) {
+    return { error: `${drafts.length}편이 인식됐습니다. 50편 이하로 나눠 넣으세요.` };
+  }
+
+  const db = await sessionClient();
+
+  // deck·body 는 not null 이다. 파서가 비워둔 자리는 사람이 채울 자리표시자를 넣는다.
+  // 빈 문자열을 넣으면 /me 목록에서 어느 글이 덜 됐는지 보이지 않는다.
+  const rows = drafts.map((d) => ({
+    author_id: profile.id,
+    title: d.title || '(제목 없음)',
+    deck: d.deck || '(부제를 아직 쓰지 않았습니다)',
+    body: d.body || ' ',
+    category: d.category ?? 'essay',
+    status: 'draft' as const,
+    thumbnail_url: null,
+    thumbnail_ratio: null,
+  }));
+
+  const { data, error } = await db.from('posts').insert(rows).select('id, title');
+  if (error) return { error: `가져오지 못했습니다: ${error.message}` };
+
+  revalidatePath('/me');
+
+  return {
+    created: (data ?? []).map((row, i) => ({
+      id: row.id as number,
+      title: row.title as string,
+      // 카테고리를 못 찾아 essay 로 넣었다면 그 사실을 반드시 알려야 한다.
+      warnings: drafts[i]?.warnings ?? [],
+    })),
+  };
 }
 
 export interface AutosaveResult {

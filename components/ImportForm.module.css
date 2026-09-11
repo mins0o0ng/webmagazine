@@ -1,0 +1,244 @@
+/* 원고 가져오기 — 디자인 2b */
+
+.wrap {
+  max-width: 60rem;
+  padding-block: 52px 96px;
+}
+
+.title {
+  margin-top: 20px;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-band);
+  line-height: var(--leading-band);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-ink);
+}
+
+.lede {
+  max-width: var(--measure);
+  margin-top: 16px;
+  font-size: var(--text-deck-lead);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: var(--rule-thick) solid var(--color-rule);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.label {
+  font-size: var(--text-kicker);
+  font-weight: 700;
+  letter-spacing: var(--tracking-kicker);
+  color: var(--color-ink);
+}
+
+.counter {
+  margin-left: auto;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-spot);
+}
+
+.textarea {
+  min-height: 24rem;
+  padding: 14px;
+  background: transparent;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  resize: vertical;
+  line-height: var(--leading-body);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-deck-card);
+}
+
+.error {
+  padding: 12px 16px;
+  border-left: 3px solid var(--color-spot);
+  background: var(--color-plate);
+  font-size: var(--text-deck-card);
+}
+
+/* --- 규칙 접기 -------------------------------------------------------- */
+
+.rules {
+  border: var(--rule-thin) solid var(--color-plate);
+  padding: 12px 16px;
+}
+
+.rulesSummary {
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+  color: var(--color-meta);
+  cursor: pointer;
+}
+
+.rulesList {
+  margin-top: 12px;
+  padding-left: 18px;
+  list-style: disc;
+  font-size: var(--text-meta-sm);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+.rulesList li + li {
+  margin-top: 6px;
+}
+
+.rulesList code {
+  padding: 0.1em 0.35em;
+  background: var(--color-plate);
+  font-size: 0.95em;
+}
+
+/* --- 미리보기 --------------------------------------------------------- */
+
+.preview {
+  padding-top: 24px;
+  border-top: var(--rule-thin) solid var(--color-rule);
+}
+
+.previewTitle {
+  font-size: var(--text-section);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.previewList {
+  margin-top: 16px;
+}
+
+.previewItem {
+  padding-block: 14px;
+  border-bottom: var(--rule-thin) solid var(--color-plate);
+}
+
+.previewHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.previewNum {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-deck-card);
+  color: var(--color-num);
+  flex: none;
+}
+
+.previewName {
+  font-size: var(--text-deck-card);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.previewLen {
+  margin-left: auto;
+  font-size: var(--text-meta-sm);
+  color: var(--color-meta);
+  flex: none;
+}
+
+.previewDeck {
+  margin-top: 6px;
+  padding-left: 32px;
+  font-size: var(--text-meta-sm);
+  color: var(--color-sub);
+}
+
+/* 경고는 막지 않는다. 눈에만 띄게 한다 — 조각글인지 아닌지는 사람이 정한다. */
+.previewWarn {
+  margin-top: 8px;
+  padding-left: 32px;
+  font-size: var(--text-meta-sm);
+  line-height: var(--leading-deck);
+  color: var(--color-spot);
+}
+
+/* --- 결과 ------------------------------------------------------------- */
+
+.doneList {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: var(--rule-thick) solid var(--color-rule);
+}
+
+.doneItem {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-block: 12px;
+  border-bottom: var(--rule-thin) solid var(--color-plate);
+}
+
+.doneLink {
+  font-size: var(--text-deck-card);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.doneWarn {
+  margin-left: auto;
+  font-size: var(--text-meta-sm);
+  color: var(--color-spot);
+  flex: none;
+}
+
+/* --- 액션 ------------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding-top: 24px;
+}
+
+.primary,
+.cancel {
+  padding: 14px 28px;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+  cursor: pointer;
+}
+
+.primary {
+  background: var(--color-ink);
+  color: var(--color-band-ink);
+}
+
+.cancel {
+  background: none;
+  border-color: var(--color-meta);
+  color: var(--color-meta);
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
