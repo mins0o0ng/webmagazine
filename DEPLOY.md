@@ -68,6 +68,8 @@ npm run db:migrate -- --adopt   # 이미 적용된 것은 실행하지 않고 �
 20260906010000_auth.sql        핸들 규칙 · 컬럼 GRANT
 20260906020000_lock_anon.sql   anon 권한 축소 · RLS 재확인
 20260907000000_contrib.sql     기고 권한 · 초대장 · updated_at 트리거 수정  ← M2-1
+20260912000000_notion.sql      notion_page_id · post-images 버킷            ← M2-4
+20260913000000_engage.sql      좋아요 프라이버시 · 댓글 길이 제한            ← M3 · M3-1
 ```
 
 **B. 손으로 (스크립트를 못 쓰는 상황이라면)**
@@ -99,7 +101,7 @@ npm run db:admin -- 내주소@example.com --handle jiwon --name 배지원   # �
 
 ### 1.4 RLS 확인
 
-마이그레이션이 네 테이블 전부에 RLS 를 켜고 정책을 만든다.
+마이그레이션이 다섯 테이블 전부에 RLS 를 켜고 정책을 만든다.
 
 **대시보드의 정책 목록만 보고 판단하지 말 것.** 정책은 RLS 가 켜져 있을 때만
 작동하는데, 목록은 RLS 가 꺼져 있어도 그대로 채워져 보인다. `RLS DISABLED` 배지가
@@ -211,8 +213,16 @@ npm run dev
 | Build / Install Command | 기본값 그대로 |
 | Production Branch | `main` |
 
-`main` 이 저장소의 기본 브랜치다. 작업은 `claude/*` 브랜치에서 하고 `main` 으로
-병합하면 Production 배포가 돈다. 작업 브랜치에 푸시하면 Preview 배포가 돈다.
+`main` 으로 병합하면 Production 배포가 돈다. 작업 브랜치에 푸시하면 Preview 배포가 돈다.
+
+> **2026-09-12 현재 저장소의 기본 브랜치는 아직 `main` 이 아니라
+> `claude/web-magazine-github-6fdyvl` 이다.** 고치는 곳은 GitHub
+> Settings → General → Default branch (UI 로만 된다).
+>
+> 이게 왜 문제인가: `workflow_dispatch` 워크플로는 **기본 브랜치에서만 목록에
+> 등록된다.** Actions 탭의 **DB 점검** 이 `main` 의 최신 내용이 아니라 기본
+> 브랜치에 있던 옛 버전으로 돌 수 있다. Vercel 의 Production Branch 도 같이
+> 확인할 것.
 
 ### 3.2 환경변수
 
@@ -224,6 +234,13 @@ Settings → Environment Variables. **Type 을 반드시 구분해서 넣는다.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Config** | **예** |
 | `NEXT_PUBLIC_SITE_URL` | **Config** | 아니오 (경고) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret | 아니오 |
+| `NOTION_TOKEN` | Secret | 아니오 |
+| `NOTION_DATABASE_ID` | Secret | 아니오 |
+| `CRON_SECRET` | Secret | 아니오 |
+
+아래 셋은 M2-4(노션 자동 동기화)용이다. 셋 다 비어 있으면 동기화 기능 전체가
+없는 것으로 친다 — 편집실에 버튼도 안 뜨고, `/api/sync/notion` 은 503 으로 닫힌다.
+사이트의 나머지는 그대로 동작한다. 자세한 것은 3.4.
 
 M2-1 에서 `ADMIN_PASSWORD` 와 `ADMIN_AUTHOR_ID` 가 사라졌다. 기존 배포에 남아
 있다면 지워도 된다 — 아무 코드도 읽지 않는다.
@@ -259,7 +276,57 @@ M2-1 에서 `ADMIN_PASSWORD` 와 `ADMIN_AUTHOR_ID` 가 사라졌다. 기존 배�
 가리킨다.** 도메인이 정해지면 값을 채우고 **재배포**할 것 (환경변수 변경은
 자동 재배포되지 않는다).
 
-### 3.4 리전
+### 3.4 노션 자동 동기화 (M2-4)
+
+노션 **「웹매거진 원고」** 가 원본이고 사이트는 사본이다. 세 값을 넣어야 돈다.
+
+**1. 통합 만들기 — `NOTION_TOKEN`**
+
+https://www.notion.so/my-integrations → New integration → **Internal** →
+Secret 을 복사한다.
+
+**2. 통합을 데이터베이스에 연결한다 ← 여기서 가장 많이 막힌다**
+
+노션에서 「웹매거진 원고」를 열고 우상단 **⋯ → 연결 → 방금 만든 통합**을 고른다.
+이걸 빼먹으면 **토큰이 맞아도 404 가 난다.** 통합을 만든 것과 그 통합에 문서를
+보여주는 것은 별개다.
+
+**3. `NOTION_DATABASE_ID`**
+
+데이터베이스 URL 의 32자리 문자열. 현재 값은
+`ba421ea0-2629-4984-ad5b-8b256562d5a4`.
+
+**4. `CRON_SECRET`**
+
+아무 긴 무작위 문자열. Vercel Cron 이 `Authorization: Bearer <값>` 으로 붙인다.
+없으면 `/api/sync/notion` 은 503 으로 닫힌다 — 열어두면 누구나 반복 호출해
+노션 API 한도를 태우고 Storage 를 채울 수 있다. 편집실의 **지금 동기화** 버튼은
+서버 액션이라 이 값과 무관하게 동작한다.
+
+**Cron 일정 — 플랜을 확인할 것**
+
+`vercel.json` 은 `*/10 * * * *` (10분마다) 로 적혀 있다.
+
+> **Hobby 플랜은 cron 을 하루 한 번만 돌릴 수 있다.** 10분 일정은 배포 단계에서
+> 거부된다. Hobby 라면 `vercel.json` 의 schedule 을 `0 3 * * *` 같은 하루 한 번으로
+> 바꾸고, 즉시 반영이 필요할 때는 편집실의 **지금 동기화** 버튼을 쓴다.
+> Pro 이상이면 그대로 두면 된다.
+
+**동기화가 무엇을 하는가**
+
+- 상태 `발행` → 지면에 나간다. `초안` → 저장만 하고 안 보인다.
+  `작성중` → 아예 가져오지 않는다. `숨김` → 내린다.
+- 노션에서 **행을 지우면** 사이트에서도 숨김 처리된다. **삭제가 아니다** —
+  좋아요와 댓글이 달린 글을 되돌릴 수 없게 지우지 않는다.
+- 노션 질의가 **0행**이면 이 청소를 건너뛴다. 통합 연결이 끊기거나 DB ID 가
+  틀리면 질의는 성공하고 결과만 비어 오는데, 그대로 두면 설정 실수 한 번에
+  지면 전체가 내려간다.
+- 노션이 주는 이미지 주소는 **한 시간 뒤 만료된다.** 본문 이미지와 커버를
+  Supabase Storage 의 `post-images` 버킷으로 복사한 뒤 그 주소를 쓴다.
+- 결과를 노션의 **동기화** 칸에 되돌려 적는다. 사이트를 열어봐야 반영 여부를
+  알 수 있으면 자동화의 의미가 절반이다.
+
+### 3.5 리전
 
 `vercel.json` 이 서버리스 함수 리전을 `icn1`(서울)로 고정한다. Supabase 를
 서울에 만들었다면 그대로 두고, 다른 리전에 만들었다면 이 값을 맞춰 바꾼다.
