@@ -1,0 +1,132 @@
+name: DB 점검
+
+# 손으로만 돌린다. 푸시마다 돌리지 않는 이유는 이 워크플로가 진짜 Supabase
+# 프로젝트에 붙어 테스트 계정을 만들고 지우기 때문이다. 개발용 프로젝트에서만 쓸 것.
+on:
+  workflow_dispatch:
+    inputs:
+      admin_email:
+        description: '편집장으로 지정할 이메일 (비우면 건너뜀)'
+        required: false
+        type: string
+      run_rls_test:
+        description: 'RLS 우회 테스트를 돌린다 (테스트 계정 3개를 만들었다 지움)'
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  # 같은 DB 에 두 번 동시에 붙으면 테스트가 서로를 밟는다.
+  group: db-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 필요한 secret 이 다 있는지 먼저 본다
+        run: |
+          missing=()
+          [ -n "$NEXT_PUBLIC_SUPABASE_URL" ]      || missing+=("SUPABASE_URL")
+          [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] || missing+=("SUPABASE_ANON_KEY")
+          [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]     || missing+=("SUPABASE_SERVICE_ROLE_KEY")
+          [ -n "$DATABASE_URL" ]                  || missing+=("SUPABASE_DATABASE_URL")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::secret 이 없습니다: ${missing[*]}"
+            {
+              echo '## 설정이 덜 됐습니다'
+              echo ''
+              echo "없는 secret: \`${missing[*]}\`"
+              echo ''
+              echo '저장소 **Settings → Secrets and variables → Actions** 에서 추가하세요.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: 타입 검사
+        run: npm run typecheck
+
+      # 몇 번을 돌려도 결과가 같다. 이미 적용된 것은 건너뛴다.
+      #
+      # 출력을 파일로 받아 tee 로 흘리지 않는 이유: 파이프를 쓰면 브레이스 그룹의
+      # 종료 코드가 마지막 echo 의 것이 되어 실패가 통째로 삼켜진다.
+      - name: 마이그레이션
+        run: |
+          set +e
+          npm run --silent db:migrate > migrate.log 2>&1
+          code=$?
+          set -e
+          {
+            echo '## 마이그레이션'
+            echo '```'
+            cat migrate.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat migrate.log
+          exit $code
+
+      # 설정이 맞는지 본다. 실제로 막히는지는 test:rls 가 본다 — 다른 질문이다.
+      - name: 권한·RLS 점검 (check_rls.sql)
+        run: |
+          set +e
+          psql "$DATABASE_URL" -f supabase/check_rls.sql > rls.log 2>&1
+          code=$?
+          set -e
+          {
+            echo '## check_rls.sql'
+            echo '```'
+            cat rls.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat rls.log
+          if [ $code -ne 0 ]; then exit $code; fi
+          if grep -q 'FAIL' rls.log; then
+            echo "::error::check_rls.sql 에 FAIL 이 있습니다. 요약의 표를 보세요."
+            exit 1
+          fi
+
+      - name: 편집장 지정
+        if: inputs.admin_email != ''
+        env:
+          ADMIN_LOGIN_PASSWORD: ${{ secrets.ADMIN_LOGIN_PASSWORD }}
+          ADMIN_EMAIL_INPUT: ${{ inputs.admin_email }}
+        run: |
+          if [ -n "$ADMIN_LOGIN_PASSWORD" ]; then
+            npm run --silent db:admin -- "$ADMIN_EMAIL_INPUT" --password "$ADMIN_LOGIN_PASSWORD"
+          else
+            npm run --silent db:admin -- "$ADMIN_EMAIL_INPUT"
+          fi
+
+      # 기획안 §6 M2 / M2-1 의 완료 기준. 계정 세 개를 만들어 우회를 시도하고 지운다.
+      - name: RLS 우회 테스트
+        if: inputs.run_rls_test
+        run: |
+          set +e
+          npm run --silent test:rls > test.log 2>&1
+          code=$?
+          set -e
+          {
+            echo '## npm run test:rls'
+            echo '```'
+            cat test.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat test.log
+          exit $code

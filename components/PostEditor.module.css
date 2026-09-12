@@ -5,13 +5,87 @@
   padding-block: 52px;
 }
 
+/* 표제 줄 — 오른쪽 끝에 자동저장 상태가 붙는다(M2-2). */
+.headRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--col-gap);
+  padding-bottom: 20px;
+  border-bottom: var(--rule-thick) solid var(--color-rule);
+}
+
 .heading {
   font-family: var(--font-display);
   font-weight: var(--display-weight);
   font-size: var(--text-band);
   letter-spacing: var(--display-tracking);
-  padding-bottom: 20px;
-  border-bottom: var(--rule-thick) solid var(--color-rule);
+}
+
+.saveState,
+.saveStateError {
+  margin-left: auto;
+  font-size: var(--text-meta-sm);
+  color: var(--color-meta);
+  white-space: nowrap;
+}
+
+.saveStateError {
+  color: var(--color-spot);
+  font-weight: 700;
+  white-space: normal;
+  text-align: right;
+}
+
+/* --- 초안 복구 안내 --------------------------------------------------- */
+
+.recover {
+  display: flex;
+  align-items: center;
+  gap: var(--col-gap);
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-left: 3px solid var(--color-spot);
+  background: var(--color-plate);
+}
+
+.recoverTitle {
+  font-size: var(--text-deck-card);
+}
+
+.recoverBody {
+  margin-top: 6px;
+  font-size: var(--text-meta-sm);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+.recoverActions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.recoverPrimary,
+.recoverGhost {
+  padding: 9px 18px;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+  cursor: pointer;
+}
+
+.recoverPrimary {
+  background: var(--color-ink);
+  color: var(--color-band-ink);
+}
+
+.recoverGhost {
+  background: none;
+  border-color: var(--color-meta);
+  color: var(--color-meta);
 }
 
 .form {
@@ -57,6 +131,11 @@
   line-height: var(--leading-body);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--text-deck-card);
+}
+
+/* 툴바가 붙어 있을 때는 위 괘선을 툴바에 넘긴다. 두 줄이 겹쳐 보이면 안 된다. */
+.textareaWithBar {
+  border-top: 0;
 }
 
 .row {
@@ -146,6 +225,12 @@
 .secondary:disabled {
   opacity: 0.5;
   cursor: progress;
+}
+
+.actionsNote {
+  font-size: var(--text-meta-sm);
+  line-height: var(--leading-deck);
+  color: var(--color-meta);
 }
 
 /* 오류는 10% 자리인 시안으로 표시한다. 2b 에는 빨강이 없다. */

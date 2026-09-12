@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Markdown } from '@/components/Markdown';
 import { categoryLabel } from '@/lib/categories';
-import { formatDateFull, getPublishedPost } from '@/lib/posts';
+import { authorPath, formatDateFull } from '@/lib/format';
+import { getPublishedPost } from '@/lib/posts';
 import { RATIO_CSS } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -63,7 +64,13 @@ export default async function PostPage({ params }: Params) {
 
           <div className={styles.byline}>
             <span className={`avatar ${styles.avatar}`} aria-hidden="true" />
-            <span className={styles.author}>{post.author?.display_name}</span>
+            {post.author ? (
+              <Link href={authorPath(post.author.handle)} className={styles.author}>
+                {post.author.display_name}
+              </Link>
+            ) : (
+              <span className={styles.author} />
+            )}
             <time className={styles.date} dateTime={post.published_at ?? undefined}>
               {formatDateFull(post.published_at)}
             </time>

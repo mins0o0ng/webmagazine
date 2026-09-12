@@ -1,16 +1,28 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useCallback, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { savePost, type ActionState } from '@/app/write/actions';
 import { CATEGORIES } from '@/lib/categories';
 import type { PostDetail } from '@/lib/types';
 import { Markdown } from './Markdown';
+import { MarkdownToolbar, type Edit } from './MarkdownToolbar';
+import { useAutosave, type Snapshot } from './useAutosave';
 import styles from './PostEditor.module.css';
 
 interface Props {
   /** 수정 모드일 때의 기존 글. 새 글이면 undefined. */
   post?: PostDetail;
+}
+
+/** 폼에서 자동저장에 보낼 값만 뽑는다. 제출 버튼(status)은 여기 들어오지 않는다. */
+function snapshotOf(form: HTMLFormElement): Snapshot {
+  const data = new FormData(form);
+  const out: Snapshot = {};
+  for (const key of ['title', 'deck', 'category', 'thumbnail_url', 'thumbnail_ratio', 'body']) {
+    out[key] = String(data.get(key) ?? '');
+  }
+  return out;
 }
 
 export function PostEditor({ post }: Props) {
@@ -19,11 +31,95 @@ export function PostEditor({ post }: Props) {
   const [tab, setTab] = useState<'write' | 'preview'>('write');
   const [thumbnailUrl, setThumbnailUrl] = useState(post?.thumbnail_url ?? '');
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  /** 툴바가 잡아 둔 커서. 본문이 렌더된 뒤에 적용한다. */
+  const pendingSelection = useRef<{ start: number; end: number } | null>(null);
+
+  const isPublished = post?.status === 'published';
+
+  const { state: saveState, recovered, onChange, commit, dismissRecovered } = useAutosave({
+    initialId: post?.id ?? null,
+    baseline: {
+      title: post?.title ?? '',
+      deck: post?.deck ?? '',
+      category: post?.category ?? '',
+      thumbnail_url: post?.thumbnail_url ?? '',
+      thumbnail_ratio: post?.thumbnail_ratio ?? '3:2',
+      body: post?.body ?? '',
+    },
+    // 발행된 글은 서버 자동저장을 하지 않는다. 지면에 나가 있는 글을 사람이
+    // 저장을 누르지도 않았는데 덮어쓰면 안 된다(actions.ts autosaveDraft 주석).
+    serverAutosave: !isPublished,
+  });
+
+  const handleInput = useCallback(() => {
+    if (formRef.current) onChange(snapshotOf(formRef.current));
+  }, [onChange]);
+
+  // 툴바가 본문을 고친 뒤 커서를 되돌린다. React 가 value 를 반영한 다음이어야 한다.
+  useEffect(() => {
+    const sel = pendingSelection.current;
+    if (!sel || !bodyRef.current) return;
+    pendingSelection.current = null;
+    bodyRef.current.focus();
+    bodyRef.current.setSelectionRange(sel.start, sel.end);
+  }, [body]);
+
+  function applyEdit(edit: Edit) {
+    pendingSelection.current = { start: edit.start, end: edit.end };
+    setBody(edit.value);
+    // setBody 는 비동기라 폼에서 바로 읽으면 이전 값이 나온다. 스냅샷을 직접 만든다.
+    if (formRef.current) {
+      onChange({ ...snapshotOf(formRef.current), body: edit.value });
+    }
+  }
+
+  /** 브라우저에 남아 있던 초안을 폼에 되돌린다. */
+  function restore() {
+    const form = formRef.current;
+    if (!form || !recovered) return;
+
+    for (const [key, value] of Object.entries(recovered)) {
+      if (key === 'body') continue;
+      const field = form.elements.namedItem(key);
+      if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) {
+        field.value = value;
+      }
+    }
+    // 이 둘만 React 가 값을 쥐고 있다.
+    setThumbnailUrl(recovered.thumbnail_url ?? '');
+    setBody(recovered.body ?? '');
+    dismissRecovered();
+  }
+
   return (
     <div className={`page ${styles.wrap}`}>
-      <h1 className={styles.heading}>{post ? '글 수정' : '새 글'}</h1>
+      <div className={styles.headRow}>
+        <h1 className={styles.heading}>{post ? '글 수정' : '새 글'}</h1>
+        <SaveIndicator state={saveState} enabled={!isPublished} />
+      </div>
 
-      <form action={formAction} className={styles.form}>
+      {recovered && (
+        <div className={styles.recover} role="alert">
+          <div>
+            <strong className={styles.recoverTitle}>저장되지 않은 내용이 있습니다.</strong>
+            <p className={styles.recoverBody}>
+              브라우저에 남아 있던 초안입니다. 마지막으로 이 화면을 떠날 때의 내용이에요.
+            </p>
+          </div>
+          <div className={styles.recoverActions}>
+            <button type="button" className={styles.recoverPrimary} onClick={restore}>
+              복구
+            </button>
+            <button type="button" className={styles.recoverGhost} onClick={dismissRecovered}>
+              버리기
+            </button>
+          </div>
+        </div>
+      )}
+
+      <form ref={formRef} action={formAction} onInput={handleInput} className={styles.form}>
         {post && <input type="hidden" name="id" value={post.id} />}
 
         {state.error && (
@@ -71,6 +167,7 @@ export function PostEditor({ post }: Props) {
               name="category"
               className={styles.select}
               defaultValue={post?.category ?? ''}
+              onChange={handleInput}
               required
             >
               <option value="" disabled>
@@ -93,6 +190,7 @@ export function PostEditor({ post }: Props) {
               name="thumbnail_ratio"
               className={styles.select}
               defaultValue={post?.thumbnail_ratio ?? '3:2'}
+              onChange={handleInput}
               disabled={!thumbnailUrl}
             >
               <option value="3:2">3:2 가로</option>
@@ -109,7 +207,7 @@ export function PostEditor({ post }: Props) {
               비워도 됩니다. 없으면 부제를 활자로 세운 카드가 나갑니다.
             </span>
           </label>
-          {/* M1 에는 업로드가 없다(§8 미결정). 그때까지는 외부 URL 을 직접 넣는다. */}
+          {/* 업로드는 아직 없다(§8 미결정). 그때까지는 외부 URL 을 직접 넣는다. */}
           <input
             id="thumbnail_url"
             name="thumbnail_url"
@@ -146,12 +244,15 @@ export function PostEditor({ post }: Props) {
             </div>
           </div>
 
+          {tab === 'write' && <MarkdownToolbar textarea={() => bodyRef.current} onEdit={applyEdit} />}
+
           {/* 미리보기로 넘어가도 textarea 를 언마운트하지 않는다.
               언마운트하면 폼 제출에서 body 가 통째로 빠진다. */}
           <textarea
             id="body"
             name="body"
-            className={styles.textarea}
+            ref={bodyRef}
+            className={`${styles.textarea} ${tab === 'write' ? styles.textareaWithBar : ''}`}
             hidden={tab !== 'write'}
             value={body}
             onChange={(e) => setBody(e.target.value)}
@@ -170,27 +271,59 @@ export function PostEditor({ post }: Props) {
         </div>
 
         <div className={styles.actions}>
-          <SubmitButton name="status" value="published" variant="primary">
+          <SubmitButton name="status" value="published" variant="primary" onSubmit={commit}>
             발행
           </SubmitButton>
-          <SubmitButton name="status" value="draft" variant="secondary">
+          <SubmitButton name="status" value="draft" variant="secondary" onSubmit={commit}>
             임시저장
           </SubmitButton>
+          {isPublished && (
+            <span className={styles.actionsNote}>
+              발행된 글은 자동저장하지 않습니다. 바꾼 내용은 발행을 눌러야 지면에 나갑니다.
+            </span>
+          )}
         </div>
       </form>
     </div>
   );
 }
 
+/* -------------------------------------------------------------------- */
+
+function SaveIndicator({ state, enabled }: { state: ReturnType<typeof useAutosave>['state']; enabled: boolean }) {
+  if (!enabled) return <span className={styles.saveState}>자동저장 꺼짐 (발행글)</span>;
+
+  switch (state.kind) {
+    case 'saving':
+      return <span className={styles.saveState}>저장 중…</span>;
+    case 'saved':
+      return (
+        <span className={styles.saveState}>
+          {new Date(state.at).toLocaleTimeString('ko-KR', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+          에 저장됨
+        </span>
+      );
+    case 'error':
+      return <span className={styles.saveStateError}>{state.message}</span>;
+    default:
+      return <span className={styles.saveState}>자동저장 켜짐</span>;
+  }
+}
+
 function SubmitButton({
   name,
   value,
   variant,
+  onSubmit,
   children,
 }: {
   name: string;
   value: string;
   variant: 'primary' | 'secondary';
+  onSubmit: () => void;
   children: React.ReactNode;
 }) {
   const { pending } = useFormStatus();
@@ -200,6 +333,7 @@ function SubmitButton({
       name={name}
       value={value}
       className={styles[variant]}
+      onClick={onSubmit}
       disabled={pending}
     >
       {children}

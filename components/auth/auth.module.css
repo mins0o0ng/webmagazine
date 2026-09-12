@@ -127,3 +127,34 @@
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
+
+/* --- 편집실 열쇠 (임시) ------------------------------------------------
+ * 매직링크 아래에 두고 가는 괘선으로 나눈다. 본 통로가 아니라 곁길이라는 것을
+ * 활자 크기와 괘선 굵기로 말한다 — 2b 의 위계는 색이 아니라 굵기다. */
+
+.key {
+  margin-top: 44px;
+  padding-top: 24px;
+  border-top: var(--rule-thin) solid var(--color-rule);
+}
+
+.keyTitle {
+  font-size: var(--text-kicker);
+  font-weight: 700;
+  letter-spacing: var(--tracking-kicker);
+  color: var(--color-meta);
+}
+
+.keyBody {
+  margin-top: 10px;
+  font-size: var(--text-meta-sm);
+  line-height: var(--leading-deck);
+  color: var(--color-meta);
+}
+
+.keyForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}

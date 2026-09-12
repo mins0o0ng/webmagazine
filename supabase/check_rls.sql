@@ -35,7 +35,7 @@ select 검사, 결과, 실제값 from (
     c.relrowsecurity::text as 실제값
   from pg_class c
   where c.relnamespace = 'public'::regnamespace
-    and c.relname in ('profiles', 'posts', 'likes', 'comments')
+    and c.relname in ('profiles', 'posts', 'likes', 'comments', 'contributor_invites')
 
   union all
 
@@ -65,6 +65,8 @@ select 검사, 결과, 실제값 from (
     has_column_privilege('authenticated', x.tbl, x.col, 'UPDATE')::text
   from (values
     ('public.profiles','is_admin','profiles.is_admin'),
+    -- can_write 를 스스로 켤 수 있으면 M2-1 의 초대제가 장식이 된다.
+    ('public.profiles','can_write','profiles.can_write'),
     ('public.posts','like_count','posts.like_count'),
     ('public.posts','comment_count','posts.comment_count')
   ) as x(tbl, col, label)
@@ -86,10 +88,43 @@ select 검사, 결과, 실제값 from (
 
   union all
 
+  -- 4b. 초대 명단은 앱 롤 어느 쪽에도 열려 있지 않은가 (M2-1)
+  -- contributor_invites 에는 이메일이 들어 있다. anon 이든 로그인 사용자든
+  -- select 조차 가질 이유가 없다. service_role 만 RLS 를 우회해 읽는다.
+  --
+  -- 주의: 마이그레이션 3 의 alter default privileges 가 새 테이블마다 anon 에게
+  -- select 를 준다. 마이그레이션 4 가 명시적으로 회수하지 않으면 여기가 FAIL 이다.
+  -- CASE 는 앞의 WHEN 이 참이면 뒤를 평가하지 않는다. 테이블이 없을 때
+  -- has_table_privilege 가 오류로 죽지 않도록 to_regclass 를 먼저 본다.
+  select
+    5, '초대 명단이 ' || r || ' 에게 닫혀 있다',
+    case
+      when to_regclass('public.contributor_invites') is null then 'FAIL'
+      when has_table_privilege(r, 'public.contributor_invites', 'SELECT')
+        or has_table_privilege(r, 'public.contributor_invites', 'INSERT')
+        or has_table_privilege(r, 'public.contributor_invites', 'UPDATE')
+        or has_table_privilege(r, 'public.contributor_invites', 'DELETE')
+      then 'FAIL'
+      else 'PASS'
+    end,
+    case
+      when to_regclass('public.contributor_invites') is null
+        then '(테이블 없음 — 마이그레이션 4 미실행)'
+      else coalesce(nullif(concat_ws(',',
+        case when has_table_privilege(r,'public.contributor_invites','SELECT') then 'SELECT' end,
+        case when has_table_privilege(r,'public.contributor_invites','INSERT') then 'INSERT' end,
+        case when has_table_privilege(r,'public.contributor_invites','UPDATE') then 'UPDATE' end,
+        case when has_table_privilege(r,'public.contributor_invites','DELETE') then 'DELETE' end
+      ), ''), '(권한 없음)')
+    end
+  from unnest(array['anon','authenticated']) r
+
+  union all
+
   -- 5. 설정이 아니라 실제로 막히는가
   -- 비로그인이 되어 직접 읽어본다. published 외의 상태가 보이면 RLS 가 안 걸린 것이다.
   select
-    5, '비로그인에게 발행글만 보인다',
+    6, '비로그인에게 발행글만 보인다',
     case when exists (select 1 from pg_temp.anon_peek() where st <> 'published')
          then 'FAIL' else 'PASS' end,
     coalesce(

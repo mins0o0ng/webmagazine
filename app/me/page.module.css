@@ -1,0 +1,92 @@
+/* 내 글 — 디자인 2b */
+
+.wrap {
+  padding-block: 52px 96px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--col-gap);
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+}
+
+.name {
+  margin-top: 12px;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-band);
+  line-height: var(--leading-band);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-ink);
+}
+
+.handle {
+  margin-top: 6px;
+  font-size: var(--text-meta);
+  color: var(--color-meta);
+}
+
+.headActions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.primary,
+.secondary {
+  padding: 12px 24px;
+  border: var(--rule-thin) solid var(--color-rule);
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+  white-space: nowrap;
+}
+
+.primary {
+  background: var(--color-ink);
+  color: var(--color-band-ink);
+}
+
+.notice {
+  margin-top: 24px;
+  padding: 14px 18px;
+  border-left: 3px solid var(--color-spot);
+  background: var(--color-plate);
+  font-size: var(--text-deck-card);
+  line-height: var(--leading-deck);
+}
+
+/* --- 구획 ----------------------------------------------------------- */
+
+.section {
+  margin-top: 52px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.sectionTitle {
+  font-size: var(--text-section);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.sectionCount {
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-meta);
+}
+
+.empty {
+  padding-block: 32px;
+  font-size: var(--text-deck-card);
+  color: var(--color-meta);
+}

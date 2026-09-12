@@ -1,6 +1,6 @@
 import { PICK } from './categories';
 import { publicClient } from './supabase';
-import type { AuthorRef, PostCategory, PostDetail, PostSummary } from './types';
+import type { AuthorRef, PostCategory, PostDetail, PostSummary, Profile } from './types';
 
 /** author 조인. profiles 는 RLS 상 전체 공개라 anon 클라이언트로 읽힌다. */
 const AUTHOR = 'author:profiles!posts_author_id_fkey (handle, display_name, avatar_url)';
@@ -101,31 +101,39 @@ export async function listMonthlyAuthors(): Promise<MonthlyAuthor[]> {
   return [...byAuthor.values()].sort((a, b) => b.post_count - a.post_count);
 }
 
-export function postPath(id: number): string {
-  // 숫자 ID. 한글 제목을 슬러그로 만들면 퍼센트 인코딩으로 주소가 읽을 수 없게 길어진다(§3.3).
-  return `/p/${id}`;
+/* --- 필자 페이지 /u/[handle] (M2-1) ------------------------------------
+ * 전부 anon 클라이언트로 읽는다. 이 페이지는 ISR 이므로 쿠키를 보면 안 된다
+ * (lib/supabase.ts publicClient 주석 참고). */
+
+/** 핸들로 공개 프로필을 찾는다. profiles 는 RLS 상 전체 공개다. */
+export async function getProfileByHandle(handle: string): Promise<Profile | null> {
+  const { data, error } = await publicClient()
+    .from('profiles')
+    .select('*')
+    .eq('handle', handle.toLowerCase())
+    .maybeSingle();
+
+  if (error) throw new Error(`필자를 불러오지 못했습니다: ${error.message}`);
+  return (data as Profile) ?? null;
 }
 
-/** 리드·상세용 전체 날짜. 디자인 표기: 2026. 09. 04 */
-export function formatDateFull(iso: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}. ${mm}. ${dd}`;
-}
+/**
+ * 한 사람의 발행글. posts_author_published_idx 를 그대로 타는 쿼리다(마이그레이션 4).
+ *
+ * author_id 로 거른다. 핸들로 거르면 조인 결과에 필터가 걸려 인덱스를 못 탄다.
+ */
+export async function listPublishedByAuthor(
+  authorId: string,
+  limit = 30,
+): Promise<PostSummary[]> {
+  const { data, error } = await publicClient()
+    .from('posts')
+    .select(SUMMARY_COLUMNS)
+    .eq('author_id', authorId)
+    .eq('status', 'published')
+    .order('published_at', { ascending: false })
+    .limit(limit);
 
-/** 카드용 축약 날짜. 디자인 표기: 09. 03 */
-export function formatDateShort(iso: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${mm}. ${dd}`;
-}
-
-/** 디자인의 좋아요 표기: 1000 이상은 "1.2천". */
-export function formatCount(n: number): string {
-  if (n < 1000) return String(n);
-  return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}천`;
+  if (error) throw new Error(`글 목록을 불러오지 못했습니다: ${error.message}`);
+  return (data ?? []) as unknown as PostSummary[];
 }

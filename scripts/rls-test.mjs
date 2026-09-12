@@ -5,6 +5,10 @@
  * 기획안 §6 M2 의 완료 기준을 그대로 검사한다:
  *   "본인이 아닌 계정으로 남의 글 수정 API 를 직접 호출했을 때 거부된다."
  *
+ * M2-1 이 붙으면서 초대제 검사가 더해졌다:
+ *   "초대받지 않은 계정으로 글쓰기 API 를 직접 호출했을 때 거부된다."
+ * 이쪽이 뚫리면 M2-1 은 없는 것과 같다 — 가입한 아무나 홈 1면에 발행할 수 있다.
+ *
  * 실행:
  *   NEXT_PUBLIC_SUPABASE_URL=... NEXT_PUBLIC_SUPABASE_ANON_KEY=... \
  *   SUPABASE_SERVICE_ROLE_KEY=... npm run test:rls
@@ -46,8 +50,13 @@ function check(name, ok, detail = '') {
   }
 }
 
-/** 계정 하나를 만들고 profile 까지 붙인 뒤, 그 사람으로 로그인된 anon 클라이언트를 준다. */
-async function makeUser(tag) {
+/**
+ * 계정 하나를 만들고 profile 까지 붙인 뒤, 그 사람으로 로그인된 anon 클라이언트를 준다.
+ *
+ * canWrite 는 M2-1 의 초대제 때문에 붙었다. 기본값이 false 이므로 글쓰기 검사를
+ * 하려면 명시적으로 켜야 한다 — 그게 곧 "초대받았다" 는 뜻이다.
+ */
+async function makeUser(tag, { canWrite = true } = {}) {
   const email = `rls-${tag}-${randomUUID().slice(0, 8)}@example.test`;
   const password = randomUUID();
 
@@ -63,21 +72,23 @@ async function makeUser(tag) {
 
   const { error: profileError } = await admin
     .from('profiles')
-    .insert({ id, handle, display_name: `테스트${tag}` });
+    .insert({ id, handle, display_name: `테스트${tag}`, can_write: canWrite });
   if (profileError) throw new Error(`profile 생성 실패(${tag}): ${profileError.message}`);
 
   const client = createClient(URL, ANON, { auth: { persistSession: false } });
   const { error: signInError } = await client.auth.signInWithPassword({ email, password });
   if (signInError) throw new Error(`로그인 실패(${tag}): ${signInError.message}`);
 
-  return { id, handle, client };
+  return { id, handle, email, client };
 }
 
 async function main() {
   console.log('RLS 정책 우회 테스트\n');
 
+  // a, b 는 초대받은 기고자. c 는 가입만 한 읽기 계정이다 (M2-1).
   const a = await makeUser('a');
   const b = await makeUser('b');
+  const c = await makeUser('c', { canWrite: false });
   const anon = createClient(URL, ANON, { auth: { persistSession: false } });
 
   const createdPostIds = [];
@@ -260,6 +271,102 @@ async function main() {
         .select('id');
       check('B 는 A 이름으로 댓글을 쓸 수 없다', Boolean(error) || (data ?? []).length === 0);
     }
+
+    // ── M2-1 초대제 ────────────────────────────────────────────────────
+    //
+    // 이 지면은 초대받은 사람만 쓴다. 여기가 뚫리면 M2-1 은 없는 것과 같다 —
+    // 가입한 아무나 홈 1면에 발행할 수 있게 된다.
+
+    console.log('\n초대제 (M2-1)');
+
+    {
+      const { data, error } = await c.client
+        .from('posts')
+        .insert({
+          author_id: c.id,
+          title: 'C 가 초대 없이 쓴 글',
+          deck: '부제',
+          body: '본문',
+          category: 'essay',
+          status: 'published',
+        })
+        .select('id');
+      check(
+        '초대받지 않은 사람은 글을 쓸 수 없다  ← M2-1 완료 기준',
+        Boolean(error) || (data ?? []).length === 0,
+        (data ?? []).length > 0 ? 'posts_insert_own 이 may_write() 를 보지 않는다.' : '',
+      );
+      if (data?.[0]) createdPostIds.push(data[0].id);
+    }
+
+    {
+      const { data, error } = await c.client
+        .from('profiles')
+        .update({ can_write: true })
+        .eq('id', c.id)
+        .select('can_write');
+      // 스스로 켤 수 있으면 초대제 전체가 장식이다. is_admin 과 같은 구멍이다.
+      const escalated = !error && data?.[0]?.can_write === true;
+      check(
+        'C 는 스스로 기고 권한을 켤 수 없다',
+        !escalated,
+        escalated ? 'can_write 가 컬럼 GRANT 에서 빠져 있지 않다(마이그레이션 4).' : '',
+      );
+      if (escalated) await admin.from('profiles').update({ can_write: false }).eq('id', c.id);
+    }
+
+    {
+      const { data } = await anon.from('contributor_invites').select('email');
+      check('비로그인은 초대 명단을 읽을 수 없다', (data ?? []).length === 0);
+    }
+
+    {
+      const { data } = await c.client.from('contributor_invites').select('email');
+      check(
+        '로그인 사용자도 초대 명단을 읽을 수 없다',
+        (data ?? []).length === 0,
+        '초대 명단에는 이메일이 들어 있다. RLS 가 켜져 있고 정책이 없어야 한다.',
+      );
+    }
+
+    {
+      // 권한 회수가 실제로 무는지. 회수의 의미는 "더 이상 이 지면에 쓰지 않는다" 이므로
+      // 새 글뿐 아니라 이미 쓴 글의 수정도 멈춰야 한다.
+      await admin.from('profiles').update({ can_write: false }).eq('id', a.id);
+      const { data } = await a.client
+        .from('posts')
+        .update({ title: '권한 회수 후 수정' })
+        .eq('id', draft.id)
+        .select('id');
+      check('권한이 회수되면 자기 글도 고칠 수 없다', (data ?? []).length === 0);
+      await admin.from('profiles').update({ can_write: true }).eq('id', a.id);
+    }
+
+    {
+      // 마이그레이션 4 가 고친 트리거. 좋아요가 글의 updated_at 을 밀면 안 된다.
+      const { data: before } = await admin
+        .from('posts')
+        .select('updated_at')
+        .eq('id', published.id)
+        .single();
+
+      await admin
+        .from('likes')
+        .insert({ post_id: published.id, actor_key: `probe-${randomUUID()}` });
+
+      const { data: after } = await admin
+        .from('posts')
+        .select('updated_at, like_count')
+        .eq('id', published.id)
+        .single();
+
+      check(
+        '좋아요는 글의 updated_at 을 밀지 않는다',
+        before?.updated_at === after?.updated_at,
+        'posts_touch_updated_at 이 카운터 UPDATE 에도 걸린다. 마이그레이션 4 를 실행하세요.',
+      );
+      check('좋아요 카운터는 그대로 동작한다', (after?.like_count ?? 0) > 0);
+    }
   } finally {
     // 정리. 글은 author cascade 로 함께 지워지지만 혹시 남은 것을 먼저 치운다.
     if (createdPostIds.length > 0) {
@@ -267,6 +374,7 @@ async function main() {
     }
     await admin.auth.admin.deleteUser(a.id);
     await admin.auth.admin.deleteUser(b.id);
+    await admin.auth.admin.deleteUser(c.id);
   }
 
   console.log(`\n${passed} 통과, ${failed} 실패`);

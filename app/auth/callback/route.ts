@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { safeNext, validateDisplayName, validateHandle } from '@/lib/auth';
+import { claimInvite } from '@/lib/contributors';
 import { sessionClient } from '@/lib/supabase';
 
 /**
@@ -56,7 +57,12 @@ export async function GET(request: NextRequest) {
     return redirectTo(url, '/auth/complete', { error: 'handle' });
   }
 
-  return redirectTo(url, next);
+  // 초대 명단에 이 주소가 있으면 기고 권한을 켠다 (M2-1).
+  // can_write 는 컬럼 GRANT 에서 빠져 있어 방금 만든 세션으로는 못 쓴다.
+  // 실패해도 가입은 끝난 것으로 본다 — 편집장이 명단에서 직접 켤 수 있다.
+  const invited = await claimInvite(user.email, user.id);
+
+  return redirectTo(url, invited ? '/write' : next);
 }
 
 function redirectTo(base: URL, pathname: string, params?: Record<string, string>) {

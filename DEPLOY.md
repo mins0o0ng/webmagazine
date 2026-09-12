@@ -27,32 +27,66 @@ Supabase 프로젝트와 Vercel 프로젝트 **생성 자체는 계정 로그인
 
 **A. 대시보드 (가장 간단)**
 
-SQL Editor → New query → `supabase/migrations/20260906000000_init.sql` 전체를
-붙여넣고 Run.
-
-**B. CLI (이후 마이그레이션을 쌓을 거라면 이쪽)**
-
 ```bash
-npm i -g supabase
-supabase login
-supabase link --project-ref <프로젝트 ref>   # 대시보드 URL 에 있는 문자열
-supabase db push
+npm run db:migrate           # 안 돌린 것만, 이름 순서대로
+npm run db:migrate -- --dry  # 무엇이 돌아갈지만 본다
 ```
 
-`supabase/config.toml` 의 `major_version` 이 실제 프로젝트의 Postgres 버전과
-다르면 `db diff` 가 어긋난다. Settings → Database 에서 확인하고 맞출 것.
+`.env.local` 에 `DATABASE_URL` 이 있어야 한다 — Settings → Database →
+Connection string → **URI** 를 복사하고 `[YOUR-PASSWORD]` 자리에 프로젝트를 만들 때
+정한 데이터베이스 비밀번호를 넣는다(잊었으면 같은 화면에서 재설정).
 
-### 1.3 관리자 계정과 profile
+service_role 키로는 안 된다. 그 키는 PostgREST 를 통과하므로 테이블만 다루고
+DDL 은 못 돌린다. 이 값은 마이그레이션 실행기 전용이라 **Vercel 에는 넣지 않는다.**
 
-M1 은 인증이 없지만 `posts.author_id` 가 not null 이고 `profiles → auth.users` 를
-참조한다. **auth 유저가 0명이면 글을 한 건도 넣을 수 없다.**
+**이미 만들어진 프로젝트라면** — M1·M2 를 SQL Editor 에서 손으로 실행해 둔 DB 에는
+`schema_migrations` 기록이 없다. 그대로 돌리면 1번부터 다시 실행하려다
+"이미 존재함" 으로 멈춘다. 실행기가 그 상태를 먼저 알아보고 멈춘 뒤 안내한다.
 
-1. Authentication → Users → **Add user** → Create new user
-   (이메일 아무거나. Auto Confirm User 체크)
-2. 생성된 행의 **UID** 를 복사
-3. SQL Editor 에서 `supabase/seed.sql` 을 열어 UUID 자리를 그 값으로 바꾸고 Run
+```bash
+npm run db:migrate -- --adopt   # 이미 적용된 것은 실행하지 않고 기록만, 나머지만 실행
+```
 
-이 계정은 M2 에서 매직링크가 붙으면 그대로 정상 로그인 계정이 된다.
+각 마이그레이션 파일 첫 줄의 `-- applied-if:` 질의로 판별한다. 스키마를 고치지
+않고 기록만 맞추므로 기존 데이터에 손대지 않는다.
+
+실행 이력은 DB 의 `schema_migrations` 에 남는다. 파일 하나가 통째로 한 트랜잭션이라
+중간에 실패하면 그 파일은 아무것도 적용되지 않고, 고친 뒤 다시 돌리면 남은
+것부터 이어서 실행한다.
+
+```
+20260906000000_init.sql        스키마 · 카운터 트리거 · RLS
+20260906010000_auth.sql        핸들 규칙 · 컬럼 GRANT
+20260906020000_lock_anon.sql   anon 권한 축소 · RLS 재확인
+20260907000000_contrib.sql     기고 권한 · 초대장 · updated_at 트리거 수정  ← M2-1
+```
+
+**B. 손으로 (스크립트를 못 쓰는 상황이라면)**
+
+SQL Editor → New query → 위 파일을 **이름 순서대로** 하나씩 붙여넣고 Run.
+순서를 지킬 것 — 뒤의 파일이 앞의 정책을 교체한다.
+
+### 1.3 편집장 계정
+
+**`is_admin` 은 애플리케이션 어디에서도 켤 수 없다.** 앱에서 편집장을 만들 수
+있으면 그 경로가 곧 권한 상승 경로가 되기 때문이다. 그래서 첫 편집장은 반드시
+앱 바깥에서 만들어야 하고, 이 계정이 없으면 아무도 `/editor` 에 들어갈 수 없어
+**누구도 기고 권한을 받지 못한다.**
+
+```bash
+npm run db:admin -- 내주소@example.com
+npm run db:admin -- 내주소@example.com --handle jiwon --name 배지원   # 핸들·이름 지정
+```
+
+계정이 없으면 만들고, profile 이 없으면 만들고, `is_admin` 과 `can_write` 를 켠다.
+이미 다 돼 있으면 아무것도 바꾸지 않는다. `SUPABASE_SERVICE_ROLE_KEY` 만 있으면
+되고 `DATABASE_URL` 은 필요 없다. 핸들을 안 주면 이메일 앞부분에서 만든다.
+
+이 계정은 그대로 매직링크 로그인 계정이 된다. 그 주소로 `/login` 에서
+로그인하면 마스트헤드에 "쓰기" 가 뜨고 `/editor` 가 열린다.
+
+> 손으로 하고 싶으면 대시보드 Authentication → Users → Add user 로 계정을 만들고
+> UID 를 `supabase/seed.sql` 에 넣어 SQL Editor 에서 실행해도 결과는 같다.
 
 ### 1.4 RLS 확인
 
@@ -62,22 +96,33 @@ M1 은 인증이 없지만 `posts.author_id` 가 not null 이고 `profiles → a
 작동하는데, 목록은 RLS 가 꺼져 있어도 그대로 채워져 보인다. `RLS DISABLED` 배지가
 붙은 채 정책이 세 줄 나열돼 있으면 그 테이블은 열려 있는 것이다.
 
-`supabase/check_rls.sql` 을 SQL Editor 에 붙여넣어 세 가지를 확인한다.
+`supabase/check_rls.sql` 을 SQL Editor 에 통째로 붙여넣고 Run. **결과 표의
+"결과" 열이 전부 PASS 여야 한다.** 검사하는 것:
 
-1. 네 테이블 모두 `rls_enabled = true`
+1. 다섯 테이블 모두 `rls_enabled = true`
 2. `anon` 의 권한이 `SELECT` 뿐
-3. `authenticated` 의 컬럼 권한에 `is_admin`, `like_count`, `comment_count` 가 없음
+3. `authenticated` 의 컬럼 권한에 `is_admin`, `can_write`, `like_count`,
+   `comment_count` 가 없음
+4. 그러면서 글쓰기·가입에 필요한 컬럼 권한은 살아 있음
+5. `contributor_invites` 가 `anon` `authenticated` 양쪽에 완전히 닫혀 있음
+   (이메일이 들어 있는 테이블이다)
+6. 비로그인이 실제로 발행글만 읽음
 
-하나라도 어긋나면 마이그레이션이 끝까지 돌지 않은 것이다. 다시 실행할 것.
+하나라도 FAIL 이면 마이그레이션이 끝까지 돌지 않은 것이다. 다시 실행할 것 —
+`20260906020000_lock_anon.sql` 과 `20260907000000_contrib.sql` 은 몇 번을 돌려도
+결과가 같다.
 
-그 다음 **정책 우회 테스트를 돌린다.** 기획안 §6 M2 의 완료 기준이다.
+그 다음 **정책 우회 테스트를 돌린다.** 기획안 §6 M2 / M2-1 의 완료 기준이다.
 
 ```bash
 npm run test:rls    # .env.local 을 자동으로 읽는다
 ```
 
-계정 두 개를 만들어 남의 글 수정·삭제, 남의 초안 열람, 남의 이름으로 글쓰기,
-비로그인 좋아요 삽입, 스스로 관리자 되기를 차례로 시도하고 전부 막히는지 본다.
+계정 세 개(초대받은 기고자 둘 + 초대받지 않은 계정 하나)를 만들어 남의 글
+수정·삭제, 남의 초안 열람, 남의 이름으로 글쓰기, 비로그인 좋아요 삽입,
+스스로 관리자 되기, **초대 없이 글쓰기**, **스스로 기고 권한 켜기**,
+**초대 명단 읽기**, **권한 회수 후 자기 글 수정**을 차례로 시도하고 전부 막히는지
+본다. 좋아요가 글의 `updated_at` 을 밀지 않는지도 여기서 확인한다.
 끝나면 만든 계정을 지운다. **개발용 프로젝트에서 돌릴 것** — 운영 DB 에 테스트
 계정과 글이 잠깐 생긴다.
 
@@ -121,17 +166,24 @@ Settings → API 에서 세 값을 가져온다.
 ## 2. 로컬에서 먼저 확인
 
 ```bash
-cp .env.example .env.local   # 위에서 모은 값 + ADMIN_PASSWORD, ADMIN_AUTHOR_ID
+cp .env.example .env.local   # 위에서 모은 값 네 개
 npm install
 npm run dev
 ```
 
-1. <http://localhost:3000/write> → 관리자 비밀번호 입력
-2. 제목·부제·카테고리·본문을 넣고 **발행**
-3. 홈에 뜨는지, 새로고침해도 남아 있는지 확인
+1. <http://localhost:3000/login> → 1.3 에서 만든 편집장 주소로 매직링크 로그인
+2. 마스트헤드에 **쓰기** 가 뜨는지 확인 → `/write` 에서 제목·부제·카테고리·본문을
+   넣고 **발행**
+3. 홈에 뜨는지, 필자명을 누르면 `/u/<핸들>` 로 가는지 확인
 4. **썸네일 URL 을 비운 채로 한 건 더 발행** — 카드가 성립하는지 확인
    (기획안 §1 의 전제 조건)
-5. <http://localhost:3000/feed.xml> 에 두 글이 들어왔는지 확인
+5. <http://localhost:3000/me> 에서 두 글이 "발행한 글" 에 있는지 확인
+6. <http://localhost:3000/feed.xml> 에 두 글이 들어왔는지 확인
+
+**초대제를 확인하려면** 다른 주소로 `/signup` 해서 계정을 하나 더 만든다.
+그 계정으로 `/write` 에 가면 "아직 초대장이 없습니다" 가 떠야 한다. 편집장 계정의
+`/editor` 명단에서 그 사람에게 **기고 권한 주기** 를 누르면, 새로고침 후 `/write`
+가 열린다.
 
 여기까지 되면 배포해도 된다. 안 되는 걸 배포하면 원인이 두 배로 늘어난다.
 
@@ -163,8 +215,9 @@ Settings → Environment Variables. **Type 을 반드시 구분해서 넣는다.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Config** | **예** |
 | `NEXT_PUBLIC_SITE_URL` | **Config** | 아니오 (경고) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret | 아니오 |
-| `ADMIN_PASSWORD` | Secret | 아니오 |
-| `ADMIN_AUTHOR_ID` | Config | 아니오 |
+
+M2-1 에서 `ADMIN_PASSWORD` 와 `ADMIN_AUTHOR_ID` 가 사라졌다. 기존 배포에 남아
+있다면 지워도 된다 — 아무 코드도 읽지 않는다.
 
 `NEXT_PUBLIC_SITE_URL` 은 배포 도메인이라 **첫 배포가 성공해야 값을 알 수 있다.**
 그래서 없어도 빌드는 통과시키고 경고만 한다. 도메인이 정해진 뒤 3.3 에서 채운다.
@@ -182,8 +235,7 @@ Settings → Environment Variables. **Type 을 반드시 구분해서 넣는다.
 > 한 번 Secret 으로 만든 변수는 값을 다시 볼 수 없어 Type 을 바꿀 수 없다.
 > **지우고 Config 로 다시 만들어야 한다.**
 
-`SUPABASE_SERVICE_ROLE_KEY` 와 `ADMIN_PASSWORD` 는 서버에서만 읽으므로 Secret 이
-맞다. 빌드 로그에 "빌드에서 안 보입니다" 라고 뜨는 것은 정상이며, 빌드를 막지 않는다.
+`SUPABASE_SERVICE_ROLE_KEY` 는 서버에서만 읽으므로 Secret 이 맞다. 빌드 로그에 "빌드에서 안 보입니다" 라고 뜨는 것은 정상이며, 빌드를 막지 않는다.
 
 환경 선택은 **Production 과 Preview** 면 충분하다. Development 는 `vercel dev` 를
 쓸 때만 필요하고, 로컬은 `.env.local` 을 쓴다.

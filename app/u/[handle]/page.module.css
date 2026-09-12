@@ -1,0 +1,91 @@
+/* 필자 페이지 — 디자인 2b. 카테고리 목록의 판형을 따르되 머리에 사람이 온다. */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-block: 52px 20px;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-band);
+  line-height: var(--leading-band);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-ink);
+}
+
+.handle {
+  font-size: var(--text-meta);
+  color: var(--color-meta);
+}
+
+.stat {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.statNum {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-num);
+  line-height: 1;
+  color: var(--color-num);
+}
+
+.statLabel {
+  font-size: var(--text-kicker);
+  font-weight: 700;
+  letter-spacing: var(--tracking-kicker);
+  color: var(--color-meta);
+}
+
+.bio {
+  max-width: var(--measure);
+  padding-bottom: 24px;
+  font-size: var(--text-deck-lead);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+.grid {
+  display: grid;
+  gap: 56px var(--col-gap);
+  grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+  padding-top: 36px;
+  align-items: start;
+}
+
+.empty {
+  padding-block: 96px;
+  max-width: 34rem;
+}
+
+.emptyTitle {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-band);
+  line-height: var(--leading-band);
+  letter-spacing: var(--display-tracking);
+}
+
+.emptyBody {
+  margin-top: 16px;
+  font-size: var(--text-deck-lead);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}

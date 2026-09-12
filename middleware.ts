@@ -1,8 +1,14 @@
 import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-/** 로그인이 있어야 들어갈 수 있는 경로. */
-const PROTECTED = ['/me'];
+/**
+ * 로그인이 있어야 들어갈 수 있는 경로.
+ *
+ * /write 는 M2-1 에서 들어왔다. 그전에는 ADMIN_PASSWORD 쿠키가 막았고 로그인과
+ * 무관했다. 여기서 막는 것은 화면 선택일 뿐이고, 실제 권한은 각 페이지의
+ * can_write 검사와 DB 의 posts_insert_own 정책이 건다.
+ */
+const PROTECTED = ['/me', '/write', '/editor'];
 
 /**
  * 하는 일 두 가지.

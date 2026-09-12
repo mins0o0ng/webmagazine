@@ -2,9 +2,13 @@
 
 읽고 쓰는 사람들의 자리.
 
-기획안 v1.0 의 **마일스톤 1 + 2** + 디자인 **옵션 2b**. Next.js (App Router) + Supabase.
+기획안 v1.0 의 **마일스톤 1 + 2 + 2-1** + 디자인 **옵션 2b**. Next.js (App Router) + Supabase.
+
+이 지면은 **초대받은 사람이 씁니다.** 가입은 누구나 할 수 있지만, 글은 편집실이
+기고 권한을 켠 사람만 쓸 수 있습니다 (M2-1 — 아래 [기고 권한](#기고-권한) 참고).
 
 배포 절차는 [DEPLOY.md](./DEPLOY.md).
+보안 모델은 [docs/RLS.md](./docs/RLS.md), 작업 이력은 [docs/](./docs/).
 
 ---
 
@@ -53,23 +57,147 @@ npm run dev
 
 ### Supabase 준비
 
-1. Supabase 프로젝트를 만들고 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY` 를 `.env.local` 에 넣는다.
-2. SQL Editor 에서 `supabase/migrations/0001_init.sql` 을 실행한다.
-3. **Authentication → Users → Add user** 로 관리자 계정을 하나 만든다.
-4. 생성된 UUID 를 `supabase/seed.sql` 에 넣고 실행한 뒤, 같은 UUID 를
-   `.env.local` 의 `ADMIN_AUTHOR_ID` 에 넣는다.
+Supabase 프로젝트를 만들고 `.env.local` 에 네 값을 넣은 뒤, 명령 두 줄이면 끝난다.
 
-3~4번이 필요한 이유: `posts.author_id` 는 not null 이고 `profiles → auth.users` 를
-참조한다. M1 은 인증이 없지만 auth 유저가 0명이면 글을 한 건도 삽입할 수 없다.
-기획안 M1 체크리스트에 빠져 있던 단계다. 여기서 만든 계정은 M2 에서 매직링크가
-붙으면 그대로 정상 로그인 계정이 되므로 버리는 작업이 아니다.
+```bash
+npm run db:migrate                 # supabase/migrations/ 전부, 순서대로
+npm run db:admin -- 내주소@example.com   # 편집장 계정 + profile + 권한
+```
 
-### `/write` 접근
+`.env.local` 에 필요한 값 (전부 대시보드에서 복사):
 
-M1 은 `ADMIN_PASSWORD` 환경변수 하나로 막는다(기획안 §6 M1).
-입력하면 httpOnly 쿠키가 2주간 유지된다. M2 에서 Supabase Auth 세션으로 교체되며,
-그때 `lib/adminGate.ts` 는 삭제된다.
+| 변수 | 어디서 | 쓰는 곳 |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Settings → API | 앱 전체 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Settings → API | 앱 전체 (RLS 가 보호) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Settings → API | 편집실·초대·`db:admin` |
+| `DATABASE_URL` | Settings → Database → Connection string (URI) | **`db:migrate` 만** |
+
+이미 손으로 만들어 둔 DB 라면 `npm run db:migrate -- --adopt` 를 쓴다 —
+이미 적용된 마이그레이션은 실행하지 않고 기록만 하고 나머지만 돌린다.
+그냥 돌리면 실행기가 그 상태를 알아보고 멈춘 뒤 안내한다.
+
+`db:migrate` 는 실행 이력을 DB 의 `schema_migrations` 에 남긴다. 몇 번을 돌려도
+안 돌린 것만 돌아가므로, 마이그레이션이 추가되면 다시 실행하면 된다.
+`--dry` 를 붙이면 무엇이 돌아갈지만 보여준다.
+
+`DATABASE_URL` 이 따로 필요한 이유: service_role 키는 PostgREST 를 통과하므로
+테이블만 다룰 수 있고 DDL 은 못 돌린다. 이 값은 마이그레이션 실행기 전용이고
+앱 코드는 읽지 않는다 — Vercel 에 넣을 필요도 없다.
+
+`db:admin` 이 따로 필요한 이유: **`is_admin` 은 애플리케이션 어디에서도 켤 수 없다.**
+앱에서 편집장을 만들 수 있으면 그 경로가 곧 권한 상승 경로가 되기 때문이다.
+그래서 첫 편집장은 반드시 앱 바깥에서 만들어야 하고, 이 계정이 없으면 아무도
+`/editor` 에 들어가지 못해 누구도 기고 권한을 받을 수 없다. 이 명령은 계정이
+없으면 만들고, profile 이 없으면 만들고, 권한을 켠다. 이미 다 돼 있으면 아무것도
+바꾸지 않는다.
+
+마지막으로 `supabase/check_rls.sql` 을 SQL Editor 에서 한 번 돌려 전부 PASS 인지 본다.
+
+> `supabase/seed.sql` 은 남겨 두었다. SQL 로 직접 하고 싶을 때를 위한 것이고,
+> `npm run db:admin` 을 쓰면 필요 없다.
+
+### 기고 권한
+
+`/write` 는 **로그인 세션 + `profiles.can_write`** 로 열린다. M1·M2 의
+`ADMIN_PASSWORD` 자물쇠(`lib/adminGate.ts`)는 M2-1 에서 삭제됐고, 환경변수
+`ADMIN_PASSWORD` 와 `ADMIN_AUTHOR_ID` 도 함께 사라졌다.
+
+| 상태 | 할 수 있는 일 |
+|---|---|
+| 비로그인 | 발행글 읽기 |
+| 가입만 함 | 읽기 + `/me` (아직 글은 못 씀) |
+| `can_write` | 자기 글 쓰기·발행·수정·삭제 |
+| `is_admin` | 위 전부 + `/editor` 초대·권한 관리 + 남의 글 수정 |
+
+권한을 켜는 경로는 두 가지다.
+
+1. **가입한 사람에게 직접** — `/editor` 명단에서 "기고 권한 주기".
+2. **아직 가입 안 한 사람에게 미리** — `/editor` 에서 이메일로 초대해두면
+   그 주소로 가입하는 순간 자동으로 켜진다. **메일은 나가지 않는다** — 명단에
+   적어둘 뿐이고, 초대 사실은 편집장이 직접 알린다.
+
+`is_admin` 은 애플리케이션 어디에서도 켤 수 없다. `npm run db:admin` 이나 대시보드로만
+지정한다 — 편집장을 앱에서 만들 수 있으면 그 경로가 곧 권한 상승 경로가 되기 때문이다.
+
+### 원고를 넣는 세 가지 경로
+
+| 경로 | 언제 |
+|---|---|
+| `/write` | 사이트에서 직접 쓴다. 자동저장·툴바·미리보기 |
+| **노션 자동 동기화** | 노션에 쓰고 상태만 바꾼다. 10분마다 지면에 반영 ← M2-4 |
+| `/write/import` | 한 번만 옮길 원고를 붙여넣는다. 여러 편을 한 번에 초안으로 |
+| `supabase/seed_posts.sql` | ~~레거시~~ — M2-3 이후로는 쓰지 않는다 |
+
+**글을 발행하는 데 SQL 은 필요 없다.** `npm run db:migrate` 는 최초 1회 스키마
+세팅이고, 그 뒤로는 화면에서 끝난다. M1 때 원고를 INSERT 문으로 옮기던 경로
+(`seed_posts.sql`)가 "글 한 편 올리려면 SQL 을 짠다" 는 인상을 남겼는데,
+`/write/import` 가 그 경로를 대신한다.
+
+가져오기는 **반드시 초안으로** 들어간다. 발행은 각 글을 열어 부제와 카테고리를
+확인한 뒤에 누른다 — 그 둘은 편집 결정이지 파서가 정할 일이 아니다.
+쪼개는 규칙은 화면의 "쪼개는 규칙"에 접혀 있고, 저장 전에 몇 편이 어떻게
+인식됐는지 미리 보여준다.
+
+### 노션에서 쓰기 (M2-4)
+
+노션 **「웹매거진 원고」** 데이터베이스가 원본이고, 사이트는 사본이다. 10분마다
+Vercel Cron 이 가져오고, 편집실의 **지금 동기화** 버튼으로 즉시 당길 수도 있다.
+
+| 노션 속성 | 하는 일 |
+|---|---|
+| 제목 | `posts.title` |
+| 부제 | `posts.deck` — **발행하려면 반드시 채워야 한다** |
+| 카테고리 | essay / place / love / life / pick — **발행하려면 필수** |
+| 상태 | `작성중` 안 가져옴 · `초안` · `발행` · `숨김` |
+| 썸네일 | 비우면 페이지 커버를 쓴다 |
+| 썸네일 비율 | 3:2 / 3:4 / 1:1 |
+| 필자 핸들 | 비우면 동기화를 돌린 편집장 앞으로 |
+| 동기화 | 결과가 자동으로 적힌다. 직접 고치지 말 것 |
+
+**설정 (한 번만)**
+
+1. <https://www.notion.so/my-integrations> → New integration → Internal → Secret 복사
+2. 노션에서 「웹매거진 원고」를 열고 우상단 `⋯` → **연결** → 그 통합 선택
+   — **이걸 빼먹으면 토큰이 맞아도 404 가 난다. 가장 흔한 실수다.**
+3. `.env.local` 에 `NOTION_TOKEN`, `NOTION_DATABASE_ID`, `CRON_SECRET`
+
+**단방향이다.** 노션에서 온 글은 `/write` 에서 편집이 막힌다. 열어두면 사이트에서
+고친 내용을 다음 동기화가 말없이 덮어쓴다 — 사라진 줄도 모르는 편집이 가장 나쁘다.
+`/me` 목록에서는 `노션` 표가 붙고 수정·삭제 대신 "노션에서 고치세요" 가 나온다.
+
+**이미지는 Supabase Storage 로 복사한다.** 노션이 호스팅하는 이미지 URL 은 서명된
+링크라 한 시간이면 만료된다. 그대로 저장하면 동기화 직후에는 멀쩡하다가 한 시간 뒤
+전부 깨지므로, 본문과 커버의 이미지를 `post-images` 버킷으로 옮기고 영구 주소로
+바꿔 넣는다. 파일 이름은 원본 URL 의 해시라 다시 동기화해도 늘어나지 않는다.
+
+**노션에서 행을 지우면 사이트에서는 숨김이 된다.** 삭제가 아니다 —
+원본이 사라졌다고 좋아요와 댓글까지 cascade 로 지우면 되돌릴 수 없다.
+
+**발행을 막는 조건이 셋 있다.** 부제·카테고리·본문 중 하나라도 비어 있으면 그 행은
+`실패` 로 표시되고 지면에 나가지 않는다. 이유는 노션의 "동기화" 칸에 적힌다.
+
+### 편집실 열쇠 — 임시
+
+매직링크 메일 왕복이 번거로울 때 쓰는 지름길이다. 비밀번호 한 칸으로 편집장 계정에
+로그인한다.
+
+```bash
+npm run db:admin -- me@example.com --password '정할비밀번호'
+# .env.local 에
+ADMIN_EMAIL=me@example.com
+```
+
+`ADMIN_EMAIL` 이 있을 때만 `/login` 에 "편집실 열쇠" 칸이 생기고, 지우면 화면과 서버
+액션이 함께 닫힌다. 빌드할 때마다 켜져 있다고 경고한다.
+
+**"비밀번호를 맞히면 관리자 권한을 준다" 가 아니라 "그 계정으로 로그인한다" 이다.**
+전자는 M2-1 이 막은 자가 승격 경로를 앱에 다시 뚫는 것이고, `auth.uid()` 가 비어
+글의 필자를 세션에서 꺼낼 수 없어 service_role 쓰기까지 되살아난다. 후자는 진짜
+세션이라 RLS·초대제·컬럼 GRANT 가 전부 그대로 작동한다.
+
+**임시 통로다.** 열쇠가 새면 지면 전체가 넘어간다. 다른 사람을 초대해 각자 자기
+계정으로 들어가기 시작하면 `ADMIN_EMAIL` 을 지울 것.
 
 ---
 
@@ -83,41 +211,69 @@ app/
   page.tsx            홈 (ISR 60초)
   p/[id]/             글 상세
   category/[slug]/    카테고리 목록 (ISR 60초)
-  write/              새 글 · 수정 · 서버 액션
+  write/              새 글 · 수정 · 서버 액션 (기고 권한 필요)
+  write/import/       원고 붙여넣어 초안으로 들이기      ← M2-3
+  api/sync/notion/    Vercel Cron 이 10분마다 부른다      ← M2-4
+  u/[handle]/         필자 페이지 (ISR 60초)          ← M2-1
+  me/                 내 글 — 초안·발행·삭제 (동적)   ← M2-1
+  editor/             편집실 — 초대·권한 관리 (동적)  ← M2-1
   login/ signup/      매직링크 요청
   auth/actions.ts     로그인·가입·프로필 생성 서버 액션
-  auth/callback/      매직링크가 돌아오는 곳
+  auth/callback/      매직링크가 돌아오는 곳 (초대장 수락도 여기서)
   auth/complete/      핸들이 겹쳤을 때 다시 고르는 화면
   legal/              이용약관 · 개인정보처리방침 (초안)
   feed.xml/           RSS
 components/
   PostCard.tsx        순번 붙은 카드. 썸네일 없이도 성립 ← M1 전제 조건
-  PostEditor.tsx      마크다운 textarea + 미리보기
+  PostEditor.tsx      마크다운 textarea + 미리보기 + 자동저장   ← M2-2
+  MarkdownToolbar.tsx 굵게·제목·인용·링크·이미지 등 여덟 개      ← M2-2
+  useAutosave.ts      localStorage 복구 + 초안 서버 자동저장     ← M2-2
+  MyPostRow.tsx       /me 의 글 한 줄 + 삭제 확인      ← M2-1
+  ImportForm.tsx      붙여넣기 + 쪼갠 결과 미리보기     ← M2-3
+  NeedsInvite.tsx     초대 없이 /write 에 온 사람      ← M2-1
   Markdown.tsx        본문 렌더러 (원시 HTML 비활성)
   auth/AuthNav.tsx    마스트헤드 로그인 표시 (클라이언트 — ISR 을 지키기 위해)
+  auth/KeyForm.tsx    편집실 열쇠 — 비밀번호 한 칸 (임시)       ← M2-2
+  editor/NotionSync.tsx  동기화 버튼 + 행별 결과            ← M2-4
+  editor/             초대 폼 · 권한 스위치            ← M2-1
 lib/
   site.ts             제호·태그라인
   supabase.ts         publicClient / sessionClient / adminClient
   supabaseBrowser.ts  브라우저 클라이언트
-  auth.ts             세션·프로필 헬퍼, 핸들 규칙, 열린 리다이렉트 차단
-  posts.ts            공개 읽기 · 에디터 픽 · 이번 달 필자 집계
-  adminPosts.ts       초안 포함 읽기 — 게이트 통과 후에만
-  adminGate.ts        M1 임시 인증 (/write. M2-1 에서 세션으로 교체된다)
+  auth.ts             세션·프로필 헬퍼, 핸들 규칙, canWrite/isEditor
+  keyLogin.ts         편집실 열쇠 켜짐/꺼짐 (임시)              ← M2-2
+  format.ts           경로·날짜·숫자 표기 — 순수 함수만 ← 클라이언트도 쓴다
+  importMarkdown.ts   붙여넣은 원고를 글 단위로 쪼갠다   ← M2-3
+  notion.ts           노션 REST + 블록→마크다운          ← M2-4
+  notionSync.ts       upsert · 이미지 복사 · 고아 숨김    ← M2-4
+  posts.ts            공개 읽기 · 에디터 픽 · 필자 페이지
+  authorPosts.ts      내 글 읽기 (세션 — RLS 가 소유권을 건다) ← M2-1
+  contributors.ts     편집실 읽기·쓰기 (service role)  ← M2-1
   env.mjs             빌드 시점 환경변수 검사
 scripts/
-  rls-test.mjs        정책 우회 테스트 ← M2 완료 기준
+  db-migrate.mjs      마이그레이션 실행기 (이력은 schema_migrations) ← M2-2
+  db-admin.mjs        편집장 지정 — 계정·profile·권한 한 번에    ← M2-2
+  rls-test.mjs        정책 우회 테스트 ← M2 / M2-1 완료 기준
 supabase/
-  migrations/         20260906000000_init · 20260906010000_auth
+  migrations/         ..._init · ..._auth · ..._lock_anon · ..._contrib · ..._notion
+  check_rls.sql       권한·RLS 점검 (PASS/FAIL 표)
   seed.sql
+docs/
+  RLS.md              보안 모델 — 정책·컬럼 GRANT·함정·확인법
+  2026-09-07-작업기록.md
 ```
+
+`lib/format.ts` 가 따로 있는 이유: `lib/posts.ts` 는 `lib/supabase.ts` 를 통해
+`next/headers` 를 끌고 온다. 클라이언트 컴포넌트가 날짜 표기 하나 때문에
+`posts.ts` 를 import 하면 빌드가 통째로 실패한다.
 
 ### 렌더링 (§2.3)
 
 | 화면 | 방식 |
 |---|---|
-| 홈, 카테고리 | ISR 60초 |
+| 홈, 카테고리, 필자 페이지 | ISR 60초 |
 | 글 상세 | 온디맨드 (발행 시 `revalidatePath`) |
-| 글쓰기 | 동적 |
+| 글쓰기, `/me`, `/editor` | 동적 |
 
 ---
 
@@ -175,7 +331,7 @@ EDITOR'S PICK). enum 값은 기획안 §3.1 그대로 `essay`/`place`/`love`/`li
 
 **5. "이번 달에 쓴 사람들"을 M1 에 넣었다.**
 기획안은 M2-1 로 잡았지만 디자인 홈에 있고, 이번 달 글만 받아 JS 에서 집계하면
-되는 수준이라 먼저 만들었다. 필자 페이지 `/u/[handle]` 링크는 M2-1 이라 아직 없다.
+되는 수준이라 먼저 만들었다. 필자 페이지 `/u/[handle]` 은 M2-1 에서 붙었다.
 
 **6. 컬럼 단위 GRANT 를 추가했다 (M2).**
 1차 마이그레이션의 RLS 정책만으로는 **가입한 사람이 자기 profile 에
@@ -185,7 +341,35 @@ EDITOR'S PICK). enum 값은 기획안 §3.1 그대로 `essay`/`place`/`love`/`li
 고치고 내릴 수 있게 된다. 가입이 열리는 순간 실제 권한 상승 경로다.
 `revoke insert, update … grant (컬럼 목록)` 으로 막았고, 같은 방식으로
 `like_count` 직접 조작과 댓글의 `post_id` 변경도 막았다.
-`scripts/rls-test.mjs` 가 이 세 가지를 검사한다.
+`scripts/rls-test.mjs` 가 이 세 가지를 검사한다. M2-1 의 `can_write` 도 같은
+목록에서 빠져 있다 — 스스로 켤 수 있으면 초대제 전체가 장식이 된다.
+
+**8. 타인 기고를 심사제가 아니라 초대제로 만들었다 (M2-1).**
+기획안 §6 M2-1 은 "타인 기고" 만 말하고 편집권을 다루지 않는다. 그런데 M2 까지의
+`posts` 정책은 `author_id = auth.uid()` 만 보므로, `/write` 를 세션 인증으로 여는
+순간 **가입한 누구나 즉시 `status = 'published'` 로 홈 1면에 올릴 수 있다.**
+편집권이 없는 매거진은 게시판이고, 스팸글 한 건에 매체 전체의 신뢰가 걸린다.
+
+선택지는 셋이었다. (a) 누구나 발행 (b) 글마다 심사 큐(draft → review → published)
+(c) 사람마다 한 번 초대. **(c) 를 골랐다** — 심사는 글마다 편집자가 붙어야 하지만
+초대는 사람마다 한 번만 붙으면 되고, 이 규모에서 지속 가능한 쪽은 후자다.
+발행량이 늘어 초대만으로 품질이 안 잡히면 그때 `post_status` 에 `'review'` 를
+더하면 된다. 스키마는 그 방향으로 열려 있다.
+
+**9. `/write` 가 service role 을 쓰지 않는다 (M2-1).**
+M1·M2 의 `savePost` 는 `adminClient()` 로 RLS 를 우회하고 `author_id` 를
+환경변수(`ADMIN_AUTHOR_ID`)에서 꺼냈다. 이제 세션 클라이언트로 저장하고
+`author_id` 를 세션에서 꺼낸다. 소유권 판정이 DB 한 곳에서만 일어나고
+(두 곳에서 판정하면 언젠가 어긋난다), service role 키가 닿는 경로가 줄어든다.
+`lib/adminPosts.ts` 와 `lib/adminGate.ts` 는 삭제됐다.
+
+**10. 좋아요가 글의 `updated_at` 을 밀던 버그를 고쳤다 (M2-1).**
+`sync_like_count()` 가 `posts` 를 UPDATE 하고, 그 UPDATE 가
+`posts_touch_updated_at` 을 깨우고 있었다. 아무도 글을 고치지 않았는데 좋아요
+한 번에 `updated_at` 이 `now()` 로 밀린다. 지금까지는 `updated_at` 을 읽는 화면이
+없어 조용했지만, `/me` 가 "마지막 수정"을 보여주고 M3 에서 좋아요가 붙는 순간
+눈에 보이는 오작동이 된다. 트리거에 `WHEN` 조건을 붙여 사람이 고치는 칸이
+바뀔 때만 돌게 했다.
 
 **7. 마스트헤드의 로그인 표시를 클라이언트에서 읽는다.**
 서버에서 `cookies()` 를 읽으면 이 헤더를 쓰는 **모든 페이지가 동적 렌더링이 되어
@@ -211,36 +395,96 @@ ISR 이 사라진다.** 캐시된 지면에 개인 상태를 섞지 않는다는
 - [ ] Supabase 무료 티어 비활성 프로젝트 일시정지 정책 확인 (§2.2)
 - [ ] 제호 확정 — 지금은 "언젠가 (가제)". `lib/site.ts` 한 곳에 있다.
 - [ ] Vercel 연결
+- [ ] **`ADMIN_EMAIL` 지우기** — 다른 사람을 초대해 각자 자기 계정으로 들어가기
+      시작하면. 남겨두면 비밀번호 하나로 편집장이 되는 통로가 계속 열려 있다.
 
-### M2 를 열기 전에 반드시
+### 열기 전에 반드시
 
-- [ ] **`npm run test:rls` 전부 통과** — 기획안 §6 M2 의 완료 기준. 실행법은
-      [DEPLOY.md](./DEPLOY.md) 1.4 참고. 실제 Supabase 프로젝트 없이는 돌릴 수 없어
-      아직 한 번도 실행되지 않았다.
+- [ ] **`npm run test:rls` 전부 통과** — 기획안 §6 M2 / M2-1 의 완료 기준.
+      실제 Supabase 프로젝트가 있어야 돌아가고, 아직 한 번도 실행되지 않았다.
+      로컬에 아무것도 설치하지 않고 돌리려면 **GitHub Actions** 를 쓴다:
+      저장소 Settings → Secrets and variables → Actions 에 네 값을 넣고
+      Actions 탭 → **DB 점검** → Run workflow.
+      (`SUPABASE_URL` · `SUPABASE_ANON_KEY` · `SUPABASE_SERVICE_ROLE_KEY` ·
+      `SUPABASE_DATABASE_URL`, 선택으로 `ADMIN_LOGIN_PASSWORD`)
+      워크플로가 마이그레이션 → check_rls.sql → test:rls 를 차례로 돌리고
+      결과를 실행 요약에 표로 남긴다. **개발용 프로젝트에서만 돌릴 것** —
+      테스트 계정 세 개를 만들었다 지운다.
 - [ ] **이용약관·개인정보처리방침의 TODO 채우기** — 두 문서 모두 초안이고
       화면에 초안 안내가 떠 있다. 특히 약관 8조(게시물 관리)와 9조(권리 귀속)는
       남의 글을 받는 매체에서 비어 있으면 안 되는 조항이다.
 - [ ] Supabase Authentication → URL Configuration 에 Redirect URL 등록
       ([DEPLOY.md](./DEPLOY.md) 1.5)
 
-### M2 는 혼자 배포하기 애매하다
+### M2-2 에서 한 것 (에디터·셋업)
 
-지금 상태에서 가입한 사람이 할 수 있는 일이 없다. `/write` 는 여전히
-관리자 비밀번호로 막혀 있고(기획안이 세션 교체를 M2-1 로 잡았다), 좋아요와 댓글은
-M3 다. 계정을 만들 수는 있는데 아무것도 못 하는 상태는 사용자 입장에서 고장으로
-보인다. **M2-1(3~5일)까지 묶어서 내보내는 편이 낫다.**
+**셋업이 명령 두 줄이 됐다.** 마이그레이션 네 개를 SQL Editor 에 하나씩 붙여넣고,
+대시보드에서 계정을 만들고, UUID 를 복사해 `seed.sql` 을 고치고, 다시 실행하던
+과정이 `npm run db:migrate` 와 `npm run db:admin -- 주소` 로 줄었다. 사람이
+"몇 번까지 돌렸더라" 를 기억할 일이 없어진 것이 핵심이다.
+
+**자동저장이 붙었다.** 브라우저(localStorage, 0.6초)와 서버(초안일 때만, 3초 멈추면)
+두 겹이다. 새 글은 첫 자동저장에서 초안이 만들어지고 주소가 `/write/<id>` 로
+바뀌므로 새로고침해도 이어진다. **발행된 글은 서버 자동저장을 하지 않는다** —
+지면에 나가 있는 글을 사람이 저장을 누르지도 않았는데 덮어쓰면 안 되기 때문이고,
+그 경우에도 브라우저 초안 복구는 그대로 돈다.
+
+**마크다운 툴바를 여덟 개만 뒀다.** 굵게·기울임·소제목·인용·목록·링크·이미지·구분선.
+리치 에디터를 쓰지 않는다는 §6 M1 의 결정은 유지하되, 초대제로 외부 필자를
+받기 시작한 이상 `##` 와 `![]()` 를 외우게 하는 건 다른 문제라 그 사이만 메웠다.
+
+### M2-1 이 남긴 것
+
+**초대 사실을 알리는 건 사람 몫이다.** `/editor` 의 초대는 명단에 적어둘 뿐
+메일을 보내지 않는다. Supabase 매직링크와 별개인 발송 경로를 하나 더 만들면
+그때부터 스팸 신고와 도메인 평판을 관리해야 하는데, 초대가 한 달에 몇 건인
+단계에서는 그 비용이 이득보다 크다. 초대 건수가 주 단위로 쌓이면 그때 붙인다.
+
+**가입한 사람이 여전히 할 수 있는 일이 적다.** 초대받지 않으면 읽기와 `/me`
+뿐이다. M2 때보다는 낫지만(`NeedsInvite` 가 왜 못 쓰는지 설명한다), 좋아요와
+댓글이 붙는 M3 전까지 읽기 계정의 쓸모는 제한적이다.
+
+**권한 회수는 발행글을 내리지 않는다.** `can_write = false` 는 새 글과 수정을
+막을 뿐, 이미 발행된 글은 그대로 지면에 남는다. 내리려면 편집장이
+`status = 'hidden'` 으로 바꿔야 하는데 그 UI 가 아직 없다 — 지금은 대시보드에서
+직접 해야 한다.
+
+**`/editor` 명단에 페이지네이션이 없다.** 200명에서 자른다. 가입자가 그 이상으로
+늘면 검색을 붙여야 한다.
+
+**사이트 에디터에는 아직 이미지 업로드가 없다.** M2-4 가 `post-images` 버킷을
+만들고 노션 이미지를 거기로 옮기지만, `/write` 의 툴바는 여전히 `![](https://)` 를
+넣어줄 뿐이다. 버킷이 생겼으니 남은 일은 업로드 UI 하나다 — 그리고 `next/image`
+전환도 그 다음이다(§8 미결정).
+
+**미리보기가 실제 지면과 다르다.** `PostEditor.module.css` 의 `.preview` 와
+`app/p/[id]/page.module.css` 의 `.body` 가 서로 다른 스타일이다. 2b 는 활자 위계가
+디자인의 전부라서, 미리보기에서 멀쩡하던 글이 발행하면 다르게 보인다.
+지면 CSS 를 공유 모듈로 빼면 해결된다.
 
 ### 이후 마일스톤
 
-M2-1 (타인 기고) · M3 (좋아요) · M3-1 (댓글) · M4 (AI 썸네일)
+M3 (좋아요) · M3-1 (댓글) · M4 (AI 썸네일)
 — 기획안 §6 참고. 스키마와 RLS 는 이미 이들을 전제로 깔려 있다.
+
+M3 을 열기 전에 결정해야 할 것이 하나 남아 있다: **비로그인 좋아요의 `actor_key`**.
+쿠키 UUID 는 시크릿창으로 무한 좋아요가 되고, IP 해시는 개인정보 문제와 NAT
+뒤 사용자 문제를 동시에 만든다. 초대제를 고른 이 지면이라면 "좋아요도 로그인
+사용자만" 이 일관되며, 그러면 `likes` 의 RLS 정책이 이미 완성돼 있어 서버 액션
+자체가 필요 없어진다. 함께 볼 것: `likes_read_all` 이 `using (true)` 라서
+지금은 anon 키로 **누가 어떤 글에 좋아요했는지** 전부 읽힌다. count 는 이미
+`posts.like_count` 에 비정규화돼 있으므로 select 를 본인 행으로 좁혀야 한다.
 
 ---
 
 ## 스크립트
 
 ```bash
-npm run dev        # 개발 서버
-npm run build      # 프로덕션 빌드 (Supabase 연결 필요)
-npm run typecheck  # tsc --noEmit
+npm run dev         # 개발 서버
+npm run build       # 프로덕션 빌드 (Supabase 연결 필요)
+npm run typecheck   # tsc --noEmit
+
+npm run db:migrate  # 마이그레이션 (안 돌린 것만). --dry 로 미리보기
+npm run db:admin -- me@example.com   # 편집장 지정
+npm run test:rls    # RLS 정책 우회 테스트 ← M2 / M2-1 완료 기준
 ```

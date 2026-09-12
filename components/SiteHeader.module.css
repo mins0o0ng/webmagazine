@@ -88,6 +88,23 @@
   font-weight: 700;
 }
 
+/* 기고 권한이 있는 사람에게만 나온다(M2-1). 마스트헤드에서 유일하게 먹으로 채운
+   요소라 눈에 먼저 들어온다 — 이 지면에서 가장 중요한 동작이다. */
+.write {
+  padding: 6px 14px;
+  background: var(--color-ink);
+  color: var(--color-band-ink);
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+  white-space: nowrap;
+}
+
+.write:hover {
+  text-decoration: none;
+  opacity: 0.85;
+}
+
 /* 로그아웃은 POST 여야 한다(GET 링크면 프리페치나 크롤러가 로그아웃시킨다).
    폼 버튼이지만 마스트헤드에서는 링크처럼 보여야 한다. */
 .linkButton {

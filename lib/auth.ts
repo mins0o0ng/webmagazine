@@ -28,6 +28,21 @@ export async function currentProfile(): Promise<Profile | null> {
   return (data as Profile) ?? null;
 }
 
+/* --- 기고 권한 (M2-1) --------------------------------------------------
+ * 여기서 false 를 돌려주는 것은 화면을 고르기 위해서지, 막기 위해서가 아니다.
+ * 진짜 차단은 DB 의 posts_insert_own / posts_update_own 정책이 한다
+ * (마이그레이션 4). 이 함수만 믿으면 서버 액션을 우회한 요청이 그대로 통과한다. */
+
+/** 글을 쓸 수 있는 사람인가. 편집장은 초대 없이도 쓴다. */
+export function canWrite(profile: Profile | null): boolean {
+  return profile !== null && (profile.can_write || profile.is_admin);
+}
+
+/** 편집실(/editor)에 들어갈 수 있는 사람인가. */
+export function isEditor(profile: Profile | null): boolean {
+  return profile !== null && profile.is_admin;
+}
+
 /* --- 핸들 규칙 -------------------------------------------------------
  * DB 에도 같은 정규식이 CHECK 제약으로 걸려 있다(마이그레이션 2).
  * 여기서 먼저 막는 이유는 사람이 읽을 수 있는 문구를 주기 위해서다. */

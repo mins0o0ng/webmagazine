@@ -88,6 +88,13 @@
   color: var(--color-ink);
 }
 
+/* 필자 링크(M2-1). .titleLink::after 가 카드 전체를 덮고 있으므로 그 위로 올린다.
+   z-index 없이는 카드 어디를 눌러도 글로만 간다. */
+.authorLink {
+  position: relative;
+  z-index: 1;
+}
+
 .date {
   font-size: var(--text-meta-sm);
   color: var(--color-meta);

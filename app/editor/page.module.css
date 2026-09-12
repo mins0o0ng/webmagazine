@@ -1,0 +1,137 @@
+/* 편집실 — 디자인 2b */
+
+.wrap {
+  max-width: 60rem;
+  padding-block: 52px 96px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--col-gap);
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+}
+
+.title {
+  margin-top: 12px;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: var(--text-band);
+  line-height: var(--leading-band);
+  letter-spacing: var(--display-tracking);
+  color: var(--color-ink);
+}
+
+.summary {
+  margin-left: auto;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-meta);
+}
+
+.lede {
+  max-width: var(--measure);
+  margin-top: 24px;
+  font-size: var(--text-deck-card);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+/* --- 구획 ----------------------------------------------------------- */
+
+.section {
+  margin-top: 48px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.sectionTitle {
+  padding-bottom: 12px;
+  font-size: var(--text-section);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.sectionHead .sectionTitle {
+  padding-bottom: 0;
+}
+
+.count {
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-meta);
+}
+
+.empty {
+  padding-block: 32px;
+  font-size: var(--text-deck-card);
+  color: var(--color-meta);
+}
+
+/* --- 명단 ----------------------------------------------------------- */
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-block: 16px;
+  border-bottom: var(--rule-thin) solid var(--color-rule);
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.personMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.personName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-deck-card);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.badge {
+  padding: 2px 7px;
+  background: var(--color-ink);
+  color: var(--color-band-ink);
+  font-size: var(--text-kicker-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-kicker);
+}
+
+.personMeta {
+  margin-top: 4px;
+  font-size: var(--text-meta-sm);
+  color: var(--color-meta);
+}
+
+.footnote {
+  max-width: var(--measure);
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: var(--rule-thin) solid var(--color-rule);
+  font-size: var(--text-meta-sm);
+  line-height: var(--leading-deck);
+  color: var(--color-meta);
+}
+
+@media (max-width: 40rem) {
+  .person {
+    flex-wrap: wrap;
+  }
+}
