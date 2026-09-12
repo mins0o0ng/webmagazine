@@ -1,3 +1,4 @@
+-- applied-if: select to_regclass('public.posts') is not null
 -- 웹매거진 초기 스키마
 -- 기획안 v1.0 §3.1 의 스키마에 카운터 트리거(§3.2)와 RLS(§5.3)를 더한 것.
 

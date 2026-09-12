@@ -1,3 +1,6 @@
+-- applied-if: select not has_table_privilege('anon', 'public.posts', 'DELETE')
+-- (INSERT 로 판별하면 안 된다 — 마이그레이션 2 도 anon 의 insert 를 회수한다.
+--  delete 까지 거두는 것은 이 파일뿐이라 여기서만 참이 된다.)
 -- anon 권한 축소 + RLS 재확인
 --
 -- 배경 1. 마이그레이션 2 는 anon 에게서 insert, update 만 회수했다.

@@ -4,6 +4,7 @@
  *
  *   npm run db:migrate            아직 안 돌린 파일만 순서대로
  *   npm run db:migrate -- --dry   무엇이 돌아갈지만 본다
+ *   npm run db:migrate -- --adopt 이미 손으로 만든 DB 의 현재 상태를 인정하고 기록만 한다
  *   npm run db:migrate -- --redo 20260906020000_lock_anon.sql
  *
  * 왜 만들었나: 지금까지는 supabase/migrations/ 의 파일을 사람이 SQL Editor 에
@@ -16,6 +17,16 @@
  * DATABASE_URL 이 필요하다 — service_role 키로는 임의 SQL 을 실행할 수 없다
  * (PostgREST 는 테이블만 노출한다). Supabase 대시보드
  * Settings → Database → Connection string → URI 를 한 번만 복사해 .env.local 에 넣는다.
+ *
+ * 이미 존재하는 DB: M1~M2 를 SQL Editor 에서 손으로 실행한 프로젝트에는
+ * schema_migrations 기록이 없다. 그대로 돌리면 1번부터 다시 실행하려다
+ * "이미 존재함" 으로 멈춘다. 그래서 각 마이그레이션 파일 첫 줄에
+ *
+ *   -- applied-if: <true/false 를 돌려주는 SQL>
+ *
+ * 를 심어 두었다. --adopt 는 그 질의를 돌려 이미 적용된 파일을 실행하지 않고
+ * 기록만 한다. 기록이 비어 있는데 스키마가 이미 있으면 그냥 실행하지 않고
+ * --adopt 를 쓰라고 멈춘다 — 남의 DB 를 반쯤 밟는 것보다 낫다.
  *
  * 트랜잭션: 파일 하나가 통째로 한 트랜잭션이다. 중간에 실패하면 그 파일은
  * 아무것도 적용되지 않는다. `ALTER TYPE ... ADD VALUE` 처럼 트랜잭션 안에서
@@ -47,6 +58,7 @@ DATABASE_URL 이 없습니다.
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry');
+const adopt = args.includes('--adopt');
 const redo = args.includes('--redo') ? args[args.indexOf('--redo') + 1] : null;
 
 /**
@@ -97,7 +109,53 @@ async function main() {
     console.log(`--redo ${redo}\n`);
   }
 
-  const pending = redo ? [redo] : files.filter((f) => !done.has(f));
+  let pending = redo ? [redo] : files.filter((f) => !done.has(f));
+
+  /* --- 이미 손으로 만든 DB 를 인정한다 ------------------------------------ */
+  if (!redo && pending.length > 0) {
+    const already = [];
+    for (const name of pending) {
+      const sql = await readFile(path.join(DIR, name), 'utf8');
+      const probe = sql.match(/^\s*--\s*applied-if:\s*(.+)$/m)?.[1]?.trim();
+      if (!probe) continue;
+      try {
+        const { rows: r } = await client.query(`select (${probe}) as hit`);
+        if (r[0]?.hit === true) already.push(name);
+      } catch {
+        // 판별 질의가 실패하면 "아직 아님" 으로 본다. 실행기가 대신 판단하지 않는다.
+      }
+    }
+
+    if (already.length > 0 && !adopt) {
+      console.log('이 데이터베이스에는 이미 적용된 마이그레이션이 있습니다:');
+      for (const f of already) console.log(`  ${f}`);
+      console.log('');
+      console.log('기록(schema_migrations)에는 없지만 스키마에는 있습니다.');
+      console.log('SQL Editor 에서 손으로 실행한 프로젝트에서 흔한 상태입니다.');
+      console.log('');
+      console.log('그대로 실행하면 "이미 존재함" 으로 멈춥니다. 현재 상태를 인정하려면:');
+      console.log('');
+      console.log('  npm run db:migrate -- --adopt');
+      console.log('');
+      console.log('위 파일들을 실행하지 않고 적용된 것으로 기록한 뒤,');
+      console.log('나머지만 순서대로 돌립니다.');
+      process.exitCode = 2;
+      return;
+    }
+
+    if (adopt && already.length > 0) {
+      console.log(`이미 적용된 것으로 기록합니다 (${already.length}개, 실행하지 않음):`);
+      for (const name of already) {
+        await client.query(
+          'insert into schema_migrations (name) values ($1) on conflict do nothing',
+          [name],
+        );
+        console.log(`  ${name}  기록만`);
+      }
+      console.log('');
+      pending = pending.filter((f) => !already.includes(f));
+    }
+  }
 
   if (pending.length === 0) {
     console.log(`이미 최신입니다. (${files.length}개 전부 적용됨)`);

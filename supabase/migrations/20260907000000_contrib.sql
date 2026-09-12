@@ -1,3 +1,4 @@
+-- applied-if: select exists (select 1 from information_schema.columns where table_name='profiles' and column_name='can_write')
 -- M2-1 타인 기고 — 초대제
 --
 -- 결정: 가입은 누구나, 기고는 초대받은 사람만.

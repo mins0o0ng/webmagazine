@@ -1,3 +1,4 @@
+-- applied-if: select exists (select 1 from information_schema.columns where table_name='posts' and column_name='notion_page_id')
 -- M2-4 노션 자동 동기화
 --
 -- 노션의 "웹매거진 원고" 데이터베이스를 사이트로 단방향 복제한다.

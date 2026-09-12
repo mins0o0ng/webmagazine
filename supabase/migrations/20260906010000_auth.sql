@@ -1,3 +1,4 @@
+-- applied-if: select exists (select 1 from pg_constraint where conname = 'profiles_handle_format')
 -- M2 인증 — 핸들 규칙과 가입 경로 보강
 --
 -- 기획안 §6 M2 "가입 시 profiles 행 생성 (핸들 중복 검사 포함)".

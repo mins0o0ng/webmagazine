@@ -73,6 +73,10 @@ npm run db:admin -- 내주소@example.com   # 편집장 계정 + profile + 권�
 | `SUPABASE_SERVICE_ROLE_KEY` | Settings → API | 편집실·초대·`db:admin` |
 | `DATABASE_URL` | Settings → Database → Connection string (URI) | **`db:migrate` 만** |
 
+이미 손으로 만들어 둔 DB 라면 `npm run db:migrate -- --adopt` 를 쓴다 —
+이미 적용된 마이그레이션은 실행하지 않고 기록만 하고 나머지만 돌린다.
+그냥 돌리면 실행기가 그 상태를 알아보고 멈춘 뒤 안내한다.
+
 `db:migrate` 는 실행 이력을 DB 의 `schema_migrations` 에 남긴다. 몇 번을 돌려도
 안 돌린 것만 돌아가므로, 마이그레이션이 추가되면 다시 실행하면 된다.
 `--dry` 를 붙이면 무엇이 돌아갈지만 보여준다.
