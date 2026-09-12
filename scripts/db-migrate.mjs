@@ -82,6 +82,58 @@ const client = new pg.Client({
   ssl: isLocal(url) ? false : { rejectUnauthorized: false },
 });
 
+/**
+ * 접속이 실패했을 때 무엇을 잘못 넣었는지 짚어준다.
+ *
+ * DATABASE_URL 은 사람이 손으로 조립하는 유일한 값이라 틀리는 방식이 정해져 있다.
+ * 비밀번호는 절대 찍지 않는다 — 로그가 CI 에 남는다.
+ */
+function diagnose(err) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return ['DATABASE_URL 이 URL 형식이 아닙니다. postgresql:// 로 시작해야 합니다.'];
+  }
+
+  const user = decodeURIComponent(u.username || '');
+  const pass = u.password || '';
+  const lines = [`접속 대상: ${u.hostname}:${u.port || 5432}  사용자: ${user || '(없음)'}`];
+  const authFailed = /password authentication failed|SASL|no password supplied/i.test(
+    err.message,
+  );
+
+  if (/YOUR-PASSWORD|\[|\]/.test(pass)) {
+    lines.push('');
+    lines.push('비밀번호 자리에 [YOUR-PASSWORD] 자리표시자가 그대로 있습니다.');
+    lines.push('대괄호까지 지우고 실제 데이터베이스 비밀번호로 바꾸세요.');
+    return lines;
+  }
+
+  // Supavisor(풀러)는 사용자명에 프로젝트 ref 가 붙어야 한다.
+  if (/pooler\.supabase\.com$/.test(u.hostname) && !user.includes('.')) {
+    lines.push('');
+    lines.push('풀러 주소인데 사용자명이 "postgres" 입니다.');
+    lines.push('풀러는 postgres.<프로젝트ref> 형식을 요구합니다.');
+    lines.push('대시보드의 Connect → Session pooler 문자열을 통째로 다시 복사하세요');
+    lines.push('(직접 연결 문자열의 사용자명을 풀러 주소에 붙이면 이 오류가 납니다).');
+    return lines;
+  }
+
+  if (authFailed) {
+    lines.push('');
+    lines.push('비밀번호가 거부됐습니다. 흔한 원인 셋:');
+    lines.push('  1. 비밀번호에 @ : / ? # 같은 글자가 있으면 URL 인코딩해야 합니다.');
+    lines.push('     (@ → %40, # → %23, / → %2F, ? → %3F, : → %3A)');
+    lines.push('     헷갈리면 대시보드에서 특수문자 없는 비밀번호로 재설정하는 편이 빠릅니다.');
+    lines.push('     Settings → Database → Reset database password');
+    lines.push('  2. 계정 비밀번호가 아니라 데이터베이스 비밀번호여야 합니다.');
+    lines.push('  3. 풀러 주소면 사용자명이 postgres.<프로젝트ref> 여야 합니다.');
+  }
+
+  return lines;
+}
+
 async function main() {
   await client.connect();
 
@@ -205,5 +257,10 @@ main()
   .catch(async (err) => {
     await client.end().catch(() => {});
     if (!/에서 멈췄습니다/.test(err.message)) console.error(`\n${err.message}\n`);
+    // 접속 단계에서 죽었으면 무엇이 틀렸는지 짚어준다.
+    if (/authentication|ENOTFOUND|ECONNREFUSED|ETIMEDOUT|ENETUNREACH|SASL|password/i.test(err.message)) {
+      for (const line of diagnose(err)) console.error(line);
+      console.error('');
+    }
     process.exit(1);
   });
