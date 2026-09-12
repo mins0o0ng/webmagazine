@@ -67,7 +67,11 @@ jobs:
       #
       # 출력을 파일로 받아 tee 로 흘리지 않는 이유: 파이프를 쓰면 브레이스 그룹의
       # 종료 코드가 마지막 echo 의 것이 되어 실패가 통째로 삼켜진다.
+      # 실패해도 멈추지 않는다. 진단용 워크플로가 첫 실패에서 서면 나머지를
+      # 못 본다 — 마이그레이션이 막혀도 test:rls 는 돌릴 수 있고, 그 결과가
+      # "무엇이 적용돼 있는가" 를 알려준다.
       - name: 마이그레이션
+        id: migrate
         run: |
           set +e
           npm run --silent db:migrate > migrate.log 2>&1
@@ -80,10 +84,14 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           cat migrate.log
-          exit $code
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ $code -ne 0 ]; then
+            echo "::warning::마이그레이션이 실패했습니다. 뒤의 검사는 그대로 진행합니다."
+          fi
 
       # 설정이 맞는지 본다. 실제로 막히는지는 test:rls 가 본다 — 다른 질문이다.
       - name: 권한·RLS 점검 (check_rls.sql)
+        id: checkrls
         run: |
           set +e
           psql "$DATABASE_URL" -f supabase/check_rls.sql > rls.log 2>&1
@@ -96,14 +104,14 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           cat rls.log
-          if [ $code -ne 0 ]; then exit $code; fi
-          if grep -q 'FAIL' rls.log; then
-            echo "::error::check_rls.sql 에 FAIL 이 있습니다. 요약의 표를 보세요."
-            exit 1
+          if [ $code -ne 0 ] || grep -q 'FAIL' rls.log; then
+            echo "fail=1" >> "$GITHUB_OUTPUT"
+            echo "::warning::check_rls 를 통과하지 못했습니다."
           fi
 
+      # DATABASE_URL 없이 service_role 키만으로 돈다. 앞이 막혀도 여기는 된다.
       - name: 편집장 지정
-        if: inputs.admin_email != ''
+        if: always() && inputs.admin_email != ''
         env:
           ADMIN_LOGIN_PASSWORD: ${{ secrets.ADMIN_LOGIN_PASSWORD }}
           ADMIN_EMAIL_INPUT: ${{ inputs.admin_email }}
@@ -115,8 +123,11 @@ jobs:
           fi
 
       # 기획안 §6 M2 / M2-1 의 완료 기준. 계정 세 개를 만들어 우회를 시도하고 지운다.
+      # 이 검사가 "무엇이 실제로 적용돼 있는가" 를 가장 정확히 말해 준다.
+      # DATABASE_URL 이 아니라 service_role 키로 돌기 때문에 앞이 막혀도 돈다.
       - name: RLS 우회 테스트
-        if: inputs.run_rls_test
+        id: rlstest
+        if: always() && inputs.run_rls_test
         run: |
           set +e
           npm run --silent test:rls > test.log 2>&1
@@ -129,4 +140,16 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           cat test.log
-          exit $code
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      # 전부 돌린 뒤에 판정한다.
+      - name: 종합
+        if: always()
+        run: |
+          fail=0
+          [ "${{ steps.migrate.outputs.code }}" = "0" ] || { echo "마이그레이션 실패"; fail=1; }
+          [ -z "${{ steps.checkrls.outputs.fail }}" ]  || { echo "check_rls 실패"; fail=1; }
+          if [ "${{ inputs.run_rls_test }}" = "true" ]; then
+            [ "${{ steps.rlstest.outputs.code }}" = "0" ] || { echo "test:rls 실패"; fail=1; }
+          fi
+          exit $fail
