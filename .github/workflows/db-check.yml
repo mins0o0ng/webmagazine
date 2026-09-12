@@ -34,9 +34,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 22 이상이어야 한다. @supabase/supabase-js(realtime-js)가 네이티브
+      # WebSocket 을 찾는데, Node 20 에는 없어서 createClient 자체가 죽는다.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: 필요한 secret 이 다 있는지 먼저 본다

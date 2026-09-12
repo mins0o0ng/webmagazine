@@ -2,6 +2,9 @@
   "name": "webmagazine",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "node scripts/check-env.mjs --warn && next dev",
     "build": "node scripts/check-env.mjs && next build",
