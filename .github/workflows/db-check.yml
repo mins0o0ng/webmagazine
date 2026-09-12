@@ -99,6 +99,15 @@ jobs:
 
       # 몇 번을 돌려도 결과가 같다. 이미 적용된 것은 건너뛴다.
       #
+      # --adopt 를 항상 붙인다. 이 DB 는 SQL Editor 에서 손으로 만든 것이라
+      # schema_migrations 기록이 비어 있고, 그대로 돌리면 실행기가 멈춘 뒤
+      # "--adopt 를 쓰세요" 라고 안내만 하고 끝난다. 사람이 그 안내를 읽고
+      # 다시 돌리게 하는 건 이 워크플로가 없애려던 바로 그 왕복이다.
+      #
+      # 안전한 이유: --adopt 는 각 파일 첫 줄의 -- applied-if: 질의가 true 를
+      # 돌려줄 때만 그 파일을 "실행하지 않고 기록" 한다. 판별 질의가 실패하거나
+      # false 면 그냥 실행한다. 없는 것을 있다고 기록하는 경로가 없다.
+      #
       # 출력을 파일로 받아 tee 로 흘리지 않는 이유: 파이프를 쓰면 브레이스 그룹의
       # 종료 코드가 마지막 echo 의 것이 되어 실패가 통째로 삼켜진다.
       # 실패해도 멈추지 않는다. 진단용 워크플로가 첫 실패에서 서면 나머지를
@@ -108,7 +117,7 @@ jobs:
         id: migrate
         run: |
           set +e
-          npm run --silent db:migrate > migrate.log 2>&1
+          npm run --silent db:migrate -- --adopt > migrate.log 2>&1
           code=$?
           set -e
           {

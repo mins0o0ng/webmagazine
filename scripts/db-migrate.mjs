@@ -253,6 +253,11 @@ async function main() {
     }
   }
 
+  // PostgREST 는 스키마를 캐시한다. DDL 직후에 붙으면 방금 만든 컬럼을
+  // "schema cache 에 없다" 며 거부한다 — Supabase 가 알아서 다시 읽지만 몇 초
+  // 늦고, CI 는 그 몇 초를 기다려 주지 않는다. 직접 깨운다.
+  await client.query(`notify pgrst, 'reload schema'`);
+
   console.log('\n끝났습니다. 다음: supabase/check_rls.sql 로 권한을 확인하세요.');
 }
 
