@@ -37,24 +37,20 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import { resolveDatabaseUrl } from './db-url.mjs';
 
 const DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'supabase', 'migrations');
 
-const url = process.env.DATABASE_URL ?? process.env.SUPABASE_DB_URL;
-if (!url) {
-  console.error(`
-DATABASE_URL 이 없습니다.
-
-  Supabase 대시보드 → Settings → Database → Connection string → URI 를 복사해
-  .env.local 에 넣으세요. [YOUR-PASSWORD] 자리는 프로젝트를 만들 때 정한
-  데이터베이스 비밀번호입니다 (잊었다면 같은 화면에서 재설정할 수 있습니다).
-
-  DATABASE_URL=postgresql://postgres:...@db.<ref>.supabase.co:5432/postgres
-
-  service_role 키로는 안 됩니다 — 그 키는 테이블만 다루고 DDL 은 못 돌립니다.
-`);
+const resolved = resolveDatabaseUrl();
+if ('error' in resolved) {
+  console.error('');
+  for (const line of resolved.error) console.error(line);
+  console.error('');
+  console.error('  service_role 키로는 안 됩니다 — 그 키는 테이블만 다루고 DDL 은 못 돌립니다.');
+  console.error('');
   process.exit(2);
 }
+const url = resolved.url;
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry');
@@ -122,13 +118,21 @@ function diagnose(err) {
 
   if (authFailed) {
     lines.push('');
-    lines.push('비밀번호가 거부됐습니다. 흔한 원인 셋:');
-    lines.push('  1. 비밀번호에 @ : / ? # 같은 글자가 있으면 URL 인코딩해야 합니다.');
-    lines.push('     (@ → %40, # → %23, / → %2F, ? → %3F, : → %3A)');
-    lines.push('     헷갈리면 대시보드에서 특수문자 없는 비밀번호로 재설정하는 편이 빠릅니다.');
-    lines.push('     Settings → Database → Reset database password');
-    lines.push('  2. 계정 비밀번호가 아니라 데이터베이스 비밀번호여야 합니다.');
-    lines.push('  3. 풀러 주소면 사용자명이 postgres.<프로젝트ref> 여야 합니다.');
+    lines.push(`비밀번호가 거부됐습니다. (출처: ${resolved.source})`);
+    if (resolved.source === 'SUPABASE_DB_PASSWORD') {
+      lines.push('');
+      lines.push('인코딩 문제는 아닙니다 — 실행기가 직접 인코딩했습니다.');
+      lines.push('남은 원인은 값 자체입니다:');
+      lines.push('  1. 계정(supabase.com 로그인) 비밀번호가 아니라 데이터베이스 비밀번호여야 합니다.');
+      lines.push('     Settings → Database → Reset database password 에서 새로 정할 수 있습니다.');
+      lines.push('  2. secret 에 붙여넣을 때 앞뒤 공백이나 줄바꿈, 따옴표가 섞이지 않았는지 보세요.');
+      lines.push('  3. 풀러 주소면 사용자명이 postgres.<프로젝트ref> 여야 합니다.');
+    } else {
+      lines.push('');
+      lines.push('URL 안에 비밀번호를 직접 넣으셨습니다. 특수문자가 있으면 이 방식은 깨집니다.');
+      lines.push('URL 은 [YOUR-PASSWORD] 그대로 두고, 비밀번호 원문을 SUPABASE_DB_PASSWORD 에');
+      lines.push('따로 넣으세요. 인코딩은 실행기가 합니다.');
+    }
   }
 
   return lines;

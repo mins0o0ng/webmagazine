@@ -29,7 +29,10 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # URL 은 대시보드에서 복사한 그대로 ([YOUR-PASSWORD] 포함), 비밀번호는 원문.
+      # 합치고 인코딩하는 일은 scripts/db-url.mjs 가 한다 — 사람이 %40 을 적지 않는다.
       DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -48,6 +51,12 @@ jobs:
           [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] || missing+=("SUPABASE_ANON_KEY")
           [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]     || missing+=("SUPABASE_SERVICE_ROLE_KEY")
           [ -n "$DATABASE_URL" ]                  || missing+=("SUPABASE_DATABASE_URL")
+          # SUPABASE_DB_PASSWORD 는 URL 에 비밀번호를 직접 박아 넣은 예전 방식이면
+          # 없어도 된다. 자리표시자가 남아 있을 때만 필수다.
+          case "$DATABASE_URL" in
+            *YOUR-PASSWORD*|*'[PASSWORD]'*)
+              [ -n "$SUPABASE_DB_PASSWORD" ] || missing+=("SUPABASE_DB_PASSWORD") ;;
+          esac
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error::secret 이 없습니다: ${missing[*]}"
             {
@@ -64,6 +73,25 @@ jobs:
 
       - name: 타입 검사
         run: npm run typecheck
+
+      # psql 은 URL 하나만 받는다. db-migrate 와 같은 규칙으로 조립해 넘긴다.
+      # 인코딩된 비밀번호는 secret 마스킹에 안 걸리므로 직접 가린다.
+      - name: 접속 문자열 조립
+        id: dburl
+        run: |
+          set +e
+          out=$(node scripts/db-url.mjs 2>err.log)
+          code=$?
+          set -e
+          if [ $code -ne 0 ]; then
+            cat err.log
+            { echo '## 접속 문자열'; echo '```'; cat err.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::DATABASE_URL 을 만들지 못했습니다."
+            exit 1
+          fi
+          echo "::add-mask::$out"
+          echo "DATABASE_URL=$out" >> "$GITHUB_ENV"
+          echo "붙는 곳: $(node scripts/db-url.mjs --show)"
 
       # 몇 번을 돌려도 결과가 같다. 이미 적용된 것은 건너뛴다.
       #

@@ -32,9 +32,18 @@ npm run db:migrate           # 안 돌린 것만, 이름 순서대로
 npm run db:migrate -- --dry  # 무엇이 돌아갈지만 본다
 ```
 
-`.env.local` 에 `DATABASE_URL` 이 있어야 한다 — Settings → Database →
-Connection string → **URI** 를 복사하고 `[YOUR-PASSWORD]` 자리에 프로젝트를 만들 때
-정한 데이터베이스 비밀번호를 넣는다(잊었으면 같은 화면에서 재설정).
+`.env.local` 에 값 **두 개**가 있어야 한다.
+
+```
+DATABASE_URL=          # Connect → Session pooler 문자열을 그대로. [YOUR-PASSWORD] 그대로 둔다
+SUPABASE_DB_PASSWORD=  # 데이터베이스 비밀번호 원문. 인코딩하지 않는다
+```
+
+비밀번호를 URL 안에 직접 넣지 않는 이유: Supabase 는 비밀번호에 특수문자를
+요구하는데, 그 글자들이 URL 문법과 충돌한다 — `@` 는 호스트 구분자, `:` 는 포트,
+`/` 는 경로, `#` 은 프래그먼트다. 사람에게 `%40` 으로 바꿔 적으라고 시키는 건
+실패하는 절차라서, 인코딩은 `scripts/db-url.mjs` 가 한 곳에서 한다.
+직접 조립한 URL 도 그대로 동작한다(`SUPABASE_DB_PASSWORD` 를 비워 두면 된다).
 
 service_role 키로는 안 된다. 그 키는 PostgREST 를 통과하므로 테이블만 다루고
 DDL 은 못 돌린다. 이 값은 마이그레이션 실행기 전용이라 **Vercel 에는 넣지 않는다.**

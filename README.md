@@ -71,7 +71,12 @@ npm run db:admin -- 내주소@example.com   # 편집장 계정 + profile + 권�
 | `NEXT_PUBLIC_SUPABASE_URL` | Settings → API | 앱 전체 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Settings → API | 앱 전체 (RLS 가 보호) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Settings → API | 편집실·초대·`db:admin` |
-| `DATABASE_URL` | Settings → Database → Connection string (URI) | **`db:migrate` 만** |
+| `DATABASE_URL` | Connect → Session pooler (문자열 그대로, `[YOUR-PASSWORD]` 도 그대로) | **`db:migrate` 만** |
+| `SUPABASE_DB_PASSWORD` | 데이터베이스 비밀번호 **원문** (인코딩하지 않는다) | **`db:migrate` 만** |
+
+비밀번호를 URL 에 직접 박지 않는 이유: Supabase 는 비밀번호에 특수문자를 요구하고,
+그 글자들(`@` `:` `/` `#`)이 전부 URL 구분자다. 인코딩은 `scripts/db-url.mjs` 가
+한 곳에서 한다.
 
 이미 손으로 만들어 둔 DB 라면 `npm run db:migrate -- --adopt` 를 쓴다 —
 이미 적용된 마이그레이션은 실행하지 않고 기록만 하고 나머지만 돌린다.
@@ -408,7 +413,8 @@ ISR 이 사라진다.** 캐시된 지면에 개인 상태를 섞지 않는다는
       저장소 Settings → Secrets and variables → Actions 에 네 값을 넣고
       Actions 탭 → **DB 점검** → Run workflow.
       (`SUPABASE_URL` · `SUPABASE_ANON_KEY` · `SUPABASE_SERVICE_ROLE_KEY` ·
-      `SUPABASE_DATABASE_URL`, 선택으로 `ADMIN_LOGIN_PASSWORD`)
+      `SUPABASE_DATABASE_URL` · `SUPABASE_DB_PASSWORD`,
+      선택으로 `ADMIN_LOGIN_PASSWORD`)
       워크플로가 마이그레이션 → check_rls.sql → test:rls 를 차례로 돌리고
       결과를 실행 요약에 표로 남긴다. **개발용 프로젝트에서만 돌릴 것** —
       테스트 계정 세 개를 만들었다 지운다.
