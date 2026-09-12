@@ -173,3 +173,69 @@
     gap: 12px;
   }
 }
+
+/* --- 노션 동기화 (M2-4) ------------------------------------------------ */
+
+.syncWrap {
+  padding-top: 22px;
+}
+
+.sectionLede {
+  max-width: var(--measure);
+  padding-block: 16px 4px;
+  font-size: var(--text-meta-sm);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+}
+
+.syncList {
+  margin-top: 20px;
+  border-top: var(--rule-thin) solid var(--color-plate);
+}
+
+.syncRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-block: 10px;
+  border-bottom: var(--rule-thin) solid var(--color-plate);
+  font-size: var(--text-meta-sm);
+}
+
+.syncBadge,
+.syncBadgeOn,
+.syncBadgeWarn {
+  flex: none;
+  min-width: 5.5rem;
+  padding: 3px 8px;
+  text-align: center;
+  font-size: var(--text-kicker-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-kicker);
+  border: var(--rule-thin) solid var(--color-meta);
+  color: var(--color-meta);
+}
+
+/* 실제로 지면이 바뀐 것만 먹으로 채운다. 한눈에 세어져야 한다. */
+.syncBadgeOn {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-band-ink);
+}
+
+.syncBadgeWarn {
+  border-color: var(--color-spot);
+  color: var(--color-spot);
+}
+
+.syncTitle {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.syncNote {
+  margin-left: auto;
+  color: var(--color-meta);
+  text-align: right;
+}

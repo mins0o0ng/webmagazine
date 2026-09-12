@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { isEditor, currentProfile, validateEmail } from '@/lib/auth';
+import { syncFromNotion, type SyncOutcome } from '@/lib/notionSync';
 import { adminClient } from '@/lib/supabase';
 
 export interface EditorState {
@@ -23,6 +24,53 @@ async function gate(): Promise<{ id: string } | { error: string }> {
   const profile = await currentProfile();
   if (!isEditor(profile)) return { error: '편집실 권한이 없습니다.' };
   return { id: profile!.id };
+}
+
+/* --- 노션 동기화 (M2-4) ------------------------------------------------ */
+
+export interface SyncState {
+  error?: string;
+  ok?: string;
+  outcomes?: SyncOutcome[];
+}
+
+/**
+ * 사람이 누르는 동기화. 자동 실행은 Vercel Cron 이
+ * app/api/sync/notion/route.ts 를 부른다.
+ *
+ * "필자 핸들" 이 빈 노션 행은 지금 누른 편집장 앞으로 저장된다.
+ */
+export async function runNotionSync(_prev: SyncState, _form: FormData): Promise<SyncState> {
+  const gated = await gate();
+  if ('error' in gated) return { error: gated.error };
+
+  const report = await syncFromNotion(gated.id);
+  if (!report.ran) return { error: report.error };
+
+  const changed = report.outcomes.filter(
+    (o) => o.action === 'created' || o.action === 'updated',
+  );
+  const failed = report.outcomes.filter((o) => o.action === 'failed');
+
+  if (changed.length > 0) {
+    revalidatePath('/');
+    revalidatePath('/feed.xml');
+    for (const o of changed) {
+      if (o.postId !== undefined) revalidatePath(`/p/${o.postId}`);
+    }
+    for (const slug of ['essay', 'place', 'love', 'life', 'pick']) {
+      revalidatePath(`/category/${slug}`);
+    }
+  }
+  revalidatePath('/editor');
+
+  return {
+    ok:
+      `노션 ${report.outcomes.length}행을 확인했습니다 — ` +
+      `${changed.length}건 반영` +
+      (failed.length > 0 ? `, ${failed.length}건 실패` : ''),
+    outcomes: report.outcomes,
+  };
 }
 
 /** 아직 가입하지 않은 사람을 미리 초대해둔다. 가입 시 auth 콜백이 권한을 켠다. */

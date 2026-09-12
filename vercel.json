@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "regions": ["icn1"]
+  "crons": [
+    {
+      "path": "/api/sync/notion",
+      "schedule": "*/10 * * * *"
+    }
+  ]
 }

@@ -26,10 +26,12 @@ export interface AuthoredPost {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  /** 값이 있으면 노션이 원본이다. 사이트에서 고칠 수 없다(M2-4). */
+  notion_page_id: string | null;
 }
 
 const AUTHORED_COLUMNS =
-  'id, title, deck, category, status, thumbnail_url, like_count, comment_count, published_at, created_at, updated_at';
+  'id, title, deck, category, status, thumbnail_url, like_count, comment_count, published_at, created_at, updated_at, notion_page_id';
 
 /**
  * 내 글 전부 — 초안과 숨김 포함.

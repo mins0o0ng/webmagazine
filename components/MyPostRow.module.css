@@ -127,3 +127,21 @@
     gap: 16px;
   }
 }
+
+/* 노션이 원본인 글 (M2-4). 지면에 나가는 글과 같은 목록에 있으므로
+   출처가 한눈에 보여야 한다. */
+.source {
+  padding: 3px 8px;
+  border: var(--rule-thin) dashed var(--color-meta);
+  font-size: var(--text-kicker-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-kicker);
+  color: var(--color-meta);
+}
+
+.locked {
+  padding: 9px 16px;
+  font-size: var(--text-meta-sm);
+  color: var(--color-meta);
+  white-space: nowrap;
+}

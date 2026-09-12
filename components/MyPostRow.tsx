@@ -28,6 +28,8 @@ export function MyPostRow({ post }: { post: AuthoredPost }) {
 
   const isPublished = post.status === 'published';
   const date = isPublished ? post.published_at : post.updated_at;
+  // 노션이 원본인 글은 사이트에서 고칠 수 없다(M2-4). 다음 동기화가 덮어쓴다.
+  const fromNotion = post.notion_page_id !== null;
 
   return (
     <article className={styles.row}>
@@ -37,10 +39,11 @@ export function MyPostRow({ post }: { post: AuthoredPost }) {
             {STATUS_LABEL[post.status]}
           </span>
           <span className={styles.category}>{categoryLabel(post.category)}</span>
+          {fromNotion && <span className={styles.source}>노션</span>}
         </div>
 
         <h3 className={styles.title}>
-          {isPublished ? (
+          {isPublished || fromNotion ? (
             <Link href={postPath(post.id)}>{post.title}</Link>
           ) : (
             <Link href={`/write/${post.id}`}>{post.title}</Link>
@@ -63,11 +66,16 @@ export function MyPostRow({ post }: { post: AuthoredPost }) {
       </div>
 
       <div className={styles.actions}>
-        <Link href={`/write/${post.id}`} className={styles.edit}>
-          수정
-        </Link>
+        {fromNotion ? (
+          // 삭제도 막는다. 지워도 다음 동기화가 다시 만들어 낸다.
+          <span className={styles.locked}>노션에서 고치세요</span>
+        ) : (
+          <>
+            <Link href={`/write/${post.id}`} className={styles.edit}>
+              수정
+            </Link>
 
-        {confirming ? (
+            {confirming ? (
           <form action={formAction} className={styles.confirm}>
             <input type="hidden" name="id" value={post.id} />
             <DeleteButton published={isPublished} />
@@ -79,14 +87,16 @@ export function MyPostRow({ post }: { post: AuthoredPost }) {
               그만두기
             </button>
           </form>
-        ) : (
-          <button
-            type="button"
-            className={styles.delete}
-            onClick={() => setConfirming(true)}
-          >
-            삭제
-          </button>
+            ) : (
+              <button
+                type="button"
+                className={styles.delete}
+                onClick={() => setConfirming(true)}
+              >
+                삭제
+              </button>
+            )}
+          </>
         )}
       </div>
     </article>

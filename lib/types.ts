@@ -43,6 +43,9 @@ export interface Post {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  /** 원본 노션 페이지 (M2-4). 값이 있으면 사이트에서 편집할 수 없다. */
+  notion_page_id: string | null;
+  notion_synced_at: string | null;
 }
 
 /** 카드/목록에 필요한 만큼만. body 를 빼면 홈 응답이 한 자릿수 KB 로 떨어진다. */

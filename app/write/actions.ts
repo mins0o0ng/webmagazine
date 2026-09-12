@@ -79,6 +79,17 @@ export async function savePost(_prev: ActionState, form: FormData): Promise<Acti
   let authorHandle = profile.handle;
 
   if (id) {
+    // 노션이 원본인 글은 여기서 막는다(M2-4). 열어두면 사이트에서 고친 내용을
+    // 다음 동기화가 말없이 덮어쓴다 — 사라진 줄도 모르는 편집이 가장 나쁘다.
+    const { data: source } = await db
+      .from('posts')
+      .select('notion_page_id')
+      .eq('id', id)
+      .maybeSingle();
+    if (source?.notion_page_id) {
+      return { error: '이 글은 노션이 원본입니다. 노션에서 고치면 곧 반영됩니다.' };
+    }
+
     // RLS 가 남의 글을 막지만, 막힌 결과는 오류가 아니라 "0행 영향" 으로 온다.
     // .select() 를 붙여 반환된 행으로 판정한다 — 이걸 error 로만 보면
     // 저장에 실패했는데 성공 화면이 뜬다.
@@ -244,11 +255,12 @@ export async function autosaveDraft(form: FormData): Promise<AutosaveResult> {
     // 발행된 글인지 먼저 본다. RLS 상 본인 글만 읽히므로 이 조회 자체가 소유권 검사다.
     const { data: current } = await db
       .from('posts')
-      .select('status')
+      .select('status, notion_page_id')
       .eq('id', id)
       .maybeSingle();
 
     if (!current) return { error: '이 글을 저장할 권한이 없습니다.' };
+    if (current.notion_page_id) return { skipped: true };  // 노션이 원본이다(M2-4)
     if (current.status !== 'draft') return { skipped: true };
 
     const { data, error } = await db.from('posts').update(payload).eq('id', id).select('id');

@@ -4,8 +4,10 @@ import { notFound, redirect } from 'next/navigation';
 import { ContributorToggle } from '@/components/editor/ContributorToggle';
 import { InviteForm } from '@/components/editor/InviteForm';
 import { InviteRow } from '@/components/editor/InviteRow';
+import { NotionSync } from '@/components/editor/NotionSync';
 import { isEditor, currentProfile } from '@/lib/auth';
 import { listContributors, listInvites } from '@/lib/contributors';
+import { notionEnabled } from '@/lib/notion';
 import { authorPath } from '@/lib/format';
 import styles from './page.module.css';
 
@@ -44,6 +46,20 @@ export default async function EditorPage() {
         권한을 켠 사람만 쓸 수 있습니다. 아직 가입하지 않은 사람은 아래에서 주소로
         미리 초대해 두면, 그 주소로 가입하는 순간 권한이 켜집니다.
       </p>
+
+      {/* --- 노션 (M2-4) ----------------------------------------------- */}
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>노션에서 가져오기</h2>
+        <div className="rule-thin" />
+        <p className={styles.sectionLede}>
+          노션 &ldquo;웹매거진 원고&rdquo; 데이터베이스에서 상태가 <strong>발행</strong>·
+          <strong>초안</strong>·<strong>숨김</strong>인 행을 지면으로 옮깁니다. 자동으로도
+          돌지만, 방금 바꾼 것을 바로 보고 싶으면 여기서 누르세요. 원본은 노션이라
+          가져온 글은 사이트에서 편집할 수 없습니다.
+        </p>
+        <NotionSync enabled={notionEnabled()} />
+      </section>
 
       {/* --- 초대 ------------------------------------------------------ */}
 
