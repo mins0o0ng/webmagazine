@@ -133,8 +133,15 @@ export async function queryDatabase(): Promise<NotionRow[]> {
     rows.push(...page.results);
     cursor = page.has_more ? (page.next_cursor ?? undefined) : undefined;
 
-    // 원고가 수백 편이 될 일은 없다. 무한 루프만 막는다.
-    if (rows.length > 1000) break;
+    // 원고가 수천 편이 될 일은 없다. 무한 루프를 막되, 조용히 끊지는 않는다 —
+    // 목록이 잘린 채로 돌아가면 동기화가 그 뒤의 글을 "노션에서 사라졌다" 고 보고
+    // 전부 숨겨 버린다. 여기서 던지면 부분 목록이 밖으로 나가지 않는다.
+    if (rows.length > 2000) {
+      throw new Error(
+        `원고가 2000행을 넘습니다 (${rows.length}행에서 중단). ` +
+          '목록이 잘린 채로 동기화하면 나머지 글이 전부 숨김 처리되므로 멈춥니다.',
+      );
+    }
   } while (cursor);
 
   return rows;

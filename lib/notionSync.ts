@@ -298,7 +298,23 @@ export async function syncFromNotion(fallbackAuthorId: string): Promise<SyncRepo
   }
 
   /* 노션에서 지운 행은 사이트에서도 내린다 — 삭제가 아니라 숨김이다.
-   * 원본이 사라졌다고 좋아요와 댓글까지 cascade 로 지우면 되돌릴 수 없다. */
+   * 원본이 사라졌다고 좋아요와 댓글까지 cascade 로 지우면 되돌릴 수 없다.
+   *
+   * 한 행도 못 읽었으면 이 청소를 하지 않는다. "노션이 비었다" 와 "노션을 못 읽었다"
+   * 는 여기서 구분되지 않는데, 후자가 훨씬 흔하다 — 통합 연결이 끊기거나,
+   * NOTION_DATABASE_ID 가 엉뚱한 DB 를 가리키거나, 권한이 바뀌면 질의는 성공하고
+   * 결과만 0행으로 온다. 그대로 두면 설정 실수 한 번에 지면 전체가 내려간다.
+   * 진짜로 원고를 다 지웠다면 편집실에서 내리는 편이 맞다. */
+  if (rows.length === 0) {
+    return {
+      ran: true,
+      error:
+        '노션에서 한 행도 읽지 못했습니다. 통합 연결과 NOTION_DATABASE_ID 를 확인하세요. ' +
+        '지면에 있는 글은 건드리지 않았습니다.',
+      outcomes,
+    };
+  }
+
   const db = adminClient();
   const { data: orphans } = await db
     .from('posts')
