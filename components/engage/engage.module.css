@@ -1,0 +1,236 @@
+/* 좋아요·댓글 — 디자인 2b.
+ * 시안(--color-spot)은 "10% 자리, 카테고리와 인터랙션에만" 이라고 토큰 파일이
+ * 정해 두었다. 좋아요는 그 인터랙션에 해당하는 거의 유일한 곳이다. */
+
+/* --- 좋아요 ----------------------------------------------------------- */
+
+.likeWrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.like {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 20px;
+  background: none;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  font-size: var(--text-meta);
+  font-weight: 700;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.like:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* 눌린 상태는 시안으로 채운다. 2b 에서 색이 들어가도 되는 10% 자리다. */
+.likeOn {
+  background: var(--color-spot);
+  border-color: var(--color-spot);
+  color: #fff;
+}
+
+/* 하트. 카드와 같은 도형이되 여기서는 조금 크다. */
+.heart {
+  width: 14px;
+  height: 13px;
+  border: 1.5px solid currentColor;
+  border-radius: 50% 50% 3px 3px;
+  flex: none;
+}
+
+.likeOn .heart {
+  background: currentColor;
+}
+
+.likeCount {
+  font-variant-numeric: tabular-nums;
+}
+
+.likeError {
+  font-size: var(--text-meta-sm);
+  color: var(--color-spot);
+}
+
+/* --- 댓글 ------------------------------------------------------------- */
+
+.comments {
+  max-width: var(--measure);
+  margin-top: 56px;
+}
+
+.commentsHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.commentsTitle {
+  font-size: var(--text-section);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.commentsCount {
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.commentsLoading,
+.commentsEmpty {
+  padding-block: 28px;
+  font-size: var(--text-deck-card);
+  color: var(--color-meta);
+}
+
+.commentList {
+  padding-top: 8px;
+}
+
+.comment {
+  padding-block: 18px;
+  border-bottom: var(--rule-thin) solid var(--color-plate);
+}
+
+.commentMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.commentAvatar {
+  width: 22px;
+  height: 22px;
+}
+
+.commentAuthor {
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.commentDate {
+  font-size: var(--text-meta-sm);
+  color: var(--color-meta);
+}
+
+.commentDelete {
+  margin-left: auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: var(--text-meta-sm);
+  color: var(--color-meta);
+  cursor: pointer;
+}
+
+.commentDelete:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.commentDelete:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* 댓글 본문은 마크다운을 쓰지 않는다. 줄바꿈만 살린다. */
+.commentBody {
+  margin-top: 10px;
+  padding-left: 32px;
+  font-size: var(--text-deck-card);
+  line-height: var(--leading-deck);
+  color: var(--color-sub);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.commentError {
+  margin-top: 16px;
+  padding: 11px 15px;
+  border-left: 3px solid var(--color-spot);
+  background: var(--color-plate);
+  font-size: var(--text-deck-card);
+}
+
+/* --- 입력 ------------------------------------------------------------- */
+
+.commentsSignedOut {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: var(--rule-thin) solid var(--color-rule);
+  font-size: var(--text-deck-card);
+  color: var(--color-meta);
+}
+
+.commentsLoginLink {
+  font-weight: 700;
+  color: var(--color-spot);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.commentForm {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: var(--rule-thin) solid var(--color-rule);
+}
+
+.commentInput {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  resize: vertical;
+  font-size: var(--text-deck-card);
+  line-height: var(--leading-deck);
+}
+
+.commentActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.commentLeft,
+.commentLeftWarn {
+  font-size: var(--text-meta-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-meta);
+}
+
+.commentLeftWarn {
+  color: var(--color-spot);
+  font-weight: 700;
+}
+
+.commentSubmit {
+  margin-left: auto;
+  padding: 11px 24px;
+  background: var(--color-ink);
+  color: var(--color-band-ink);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: 0;
+  font-size: var(--text-meta-sm);
+  font-weight: 700;
+  letter-spacing: var(--tracking-footer);
+  cursor: pointer;
+}
+
+.commentSubmit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

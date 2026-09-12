@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Comments } from '@/components/engage/Comments';
+import { LikeButton } from '@/components/engage/LikeButton';
 import { Markdown } from '@/components/Markdown';
 import { categoryLabel } from '@/lib/categories';
 import { authorPath, formatDateFull } from '@/lib/format';
@@ -89,12 +91,17 @@ export default async function PostPage({ params }: Params) {
         </div>
 
         <footer className={styles.footer}>
-          {/* 좋아요·댓글은 M3 / M3-1. 캐시된 페이지에 실시간 값을 섞지 않기 위해
-              클라이언트 컴포넌트로 따로 붙인다(기획안 §2.3). */}
-          <Link href={`/category/${post.category}`} className={styles.more}>
-            {categoryLabel(post.category)} 더 보기
-          </Link>
+          {/* 좋아요·댓글은 클라이언트 컴포넌트다. 캐시된 지면에 개인 상태를 섞으면
+              이 페이지가 동적 렌더링으로 바뀌어 ISR 이 사라진다(기획안 §2.3). */}
+          <div className={styles.engage}>
+            <LikeButton postId={post.id} initialCount={post.like_count} />
+            <Link href={`/category/${post.category}`} className={styles.more}>
+              {categoryLabel(post.category)} 더 보기
+            </Link>
+          </div>
         </footer>
+
+        <Comments postId={post.id} initialCount={post.comment_count} />
       </article>
     </div>
   );

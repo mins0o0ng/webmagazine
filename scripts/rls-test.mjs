@@ -254,6 +254,29 @@ async function main() {
       check('B 는 본인 좋아요를 넣을 수 있다', !error && (data ?? []).length === 1);
     }
 
+    {
+      // M3: likes_read_all 을 본인 행만으로 좁혔다(마이그레이션 6).
+      // 열려 있으면 누가 어떤 글에 좋아요했는지 전부 뽑힌다.
+      const { data } = await anon.from('likes').select('post_id, user_id');
+      check(
+        '비로그인은 남의 좋아요를 읽을 수 없다  ← M3 프라이버시',
+        (data ?? []).length === 0,
+        (data ?? []).length > 0
+          ? 'likes_read_all(using true)가 남아 있습니다. 마이그레이션 6 을 실행하세요.'
+          : '',
+      );
+    }
+
+    {
+      const { data } = await a.client.from('likes').select('post_id').eq('actor_key', b.id);
+      check('A 는 B 가 무엇에 좋아요했는지 볼 수 없다', (data ?? []).length === 0);
+    }
+
+    {
+      const { data } = await b.client.from('likes').select('post_id').eq('actor_key', b.id);
+      check('B 는 본인이 누른 것은 볼 수 있다', (data ?? []).length === 1);
+    }
+
     console.log('\ncomments');
 
     {
@@ -270,6 +293,58 @@ async function main() {
         .insert({ post_id: published.id, author_id: a.id, body: 'A 이름으로 쓴 댓글' })
         .select('id');
       check('B 는 A 이름으로 댓글을 쓸 수 없다', Boolean(error) || (data ?? []).length === 0);
+    }
+
+    {
+      // M3-1: 길이 제약은 DB 에도 있어야 한다(마이그레이션 6).
+      const { error } = await b.client
+        .from('comments')
+        .insert({ post_id: published.id, author_id: b.id, body: '   ' });
+      check('공백만 있는 댓글은 DB 가 막는다  ← M3-1', Boolean(error));
+    }
+
+    {
+      const { error } = await b.client
+        .from('comments')
+        .insert({ post_id: published.id, author_id: b.id, body: '가'.repeat(2001) });
+      check('2000자를 넘는 댓글은 DB 가 막는다', Boolean(error));
+    }
+
+    {
+      // 소프트 삭제. 카운터가 따라 내려가야 한다.
+      const { data: made } = await b.client
+        .from('comments')
+        .insert({ post_id: published.id, author_id: b.id, body: '지워질 댓글' })
+        .select('id')
+        .single();
+
+      const { data: before } = await admin
+        .from('posts')
+        .select('comment_count')
+        .eq('id', published.id)
+        .single();
+
+      await b.client
+        .from('comments')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', made.id);
+
+      const { data: after } = await admin
+        .from('posts')
+        .select('comment_count')
+        .eq('id', published.id)
+        .single();
+
+      check(
+        '댓글을 숨기면 카운터가 내려간다',
+        (after?.comment_count ?? 0) === (before?.comment_count ?? 0) - 1,
+      );
+
+      const { data: rows } = await anon.from('comments').select('id').eq('id', made.id);
+      check('숨긴 댓글은 비로그인에게 안 보인다', (rows ?? []).length === 0);
+
+      const { data: still } = await admin.from('comments').select('id').eq('id', made.id);
+      check('그래도 행은 남아 있다 (소프트 삭제)', (still ?? []).length === 1);
     }
 
     // ── M2-1 초대제 ────────────────────────────────────────────────────

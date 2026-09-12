@@ -162,7 +162,17 @@
   border-top: var(--rule-thick) solid var(--color-rule);
 }
 
+/* 좋아요와 "더 보기" 를 한 줄에. 좋아요가 왼쪽인 이유는 글을 다 읽은 사람이
+   가장 먼저 할 수 있는 일이기 때문이다. */
+.engage {
+  display: flex;
+  align-items: center;
+  gap: var(--col-gap);
+  flex-wrap: wrap;
+}
+
 .more {
+  margin-left: auto;
   font-size: var(--text-meta-sm);
   font-weight: 700;
   letter-spacing: 0.1em;
