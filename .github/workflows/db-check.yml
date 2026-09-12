@@ -31,7 +31,11 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       # URL 은 대시보드에서 복사한 그대로 ([YOUR-PASSWORD] 포함), 비밀번호는 원문.
       # 합치고 인코딩하는 일은 scripts/db-url.mjs 가 한다 — 사람이 %40 을 적지 않는다.
-      DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+      #
+      # 여기서 DATABASE_URL 이라는 이름을 쓰지 않는 것이 중요하다. job 의 env 블록은
+      # $GITHUB_ENV 로 나중에 넣은 값을 덮어쓴다. 같은 이름을 쓰면 조립한 문자열이
+      # 뒤 단계에 절대 도달하지 못하고, 자리표시자가 그대로 psql 에 넘어간다.
+      SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
     steps:
@@ -50,10 +54,10 @@ jobs:
           [ -n "$NEXT_PUBLIC_SUPABASE_URL" ]      || missing+=("SUPABASE_URL")
           [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] || missing+=("SUPABASE_ANON_KEY")
           [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]     || missing+=("SUPABASE_SERVICE_ROLE_KEY")
-          [ -n "$DATABASE_URL" ]                  || missing+=("SUPABASE_DATABASE_URL")
+          [ -n "$SUPABASE_DATABASE_URL" ]         || missing+=("SUPABASE_DATABASE_URL")
           # SUPABASE_DB_PASSWORD 는 URL 에 비밀번호를 직접 박아 넣은 예전 방식이면
           # 없어도 된다. 자리표시자가 남아 있을 때만 필수다.
-          case "$DATABASE_URL" in
+          case "$SUPABASE_DATABASE_URL" in
             *YOUR-PASSWORD*|*'[PASSWORD]'*)
               [ -n "$SUPABASE_DB_PASSWORD" ] || missing+=("SUPABASE_DB_PASSWORD") ;;
           esac

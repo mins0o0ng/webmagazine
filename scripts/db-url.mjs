@@ -37,7 +37,7 @@ function split(raw) {
  * @returns {{ url: string, source: string } | { error: string[] }}
  */
 export function resolveDatabaseUrl(env = process.env) {
-  const base = env.DATABASE_URL ?? env.SUPABASE_DB_URL ?? '';
+  const base = env.DATABASE_URL ?? env.SUPABASE_DATABASE_URL ?? env.SUPABASE_DB_URL ?? '';
   const password = env.SUPABASE_DB_PASSWORD ?? '';
 
   if (!base) {
@@ -62,7 +62,16 @@ export function resolveDatabaseUrl(env = process.env) {
     };
   }
 
-  const hasPlaceholder = PLACEHOLDER.test(parts.password);
+  const needsPassword = parts.password === '' || PLACEHOLDER.test(parts.password);
+
+  // 이미 완성된 URL 이 이긴다.
+  //
+  // 반대로 두었다가 한 번 데었다. URL 에는 맞는 비밀번호가 들어 있는데
+  // SUPABASE_DB_PASSWORD 에 틀린 값이 들어 있으면, 멀쩡히 붙던 접속이 조용히
+  // 깨진다. 채워 넣기는 빈칸일 때만 하는 일이다.
+  if (!needsPassword) {
+    return { url: base.trim(), source: 'SUPABASE_DATABASE_URL' };
+  }
 
   if (password) {
     // 원문을 받아 여기서 한 번만 인코딩한다. 사람이 %40 을 적을 일이 없다.
@@ -70,18 +79,14 @@ export function resolveDatabaseUrl(env = process.env) {
     return { url, source: 'SUPABASE_DB_PASSWORD' };
   }
 
-  if (hasPlaceholder || parts.password === '') {
-    return {
-      error: [
-        'SUPABASE_DATABASE_URL 의 비밀번호 자리가 아직 [YOUR-PASSWORD] 입니다.',
-        '',
-        '  URL 을 고치지 말고, 비밀번호 원문을 SUPABASE_DB_PASSWORD 에 넣으세요.',
-        '  특수문자를 인코딩할 필요 없습니다 — 실행기가 대신 합니다.',
-      ],
-    };
-  }
-
-  return { url: base.trim(), source: 'SUPABASE_DATABASE_URL' };
+  return {
+    error: [
+      'SUPABASE_DATABASE_URL 의 비밀번호 자리가 비어 있거나 [YOUR-PASSWORD] 입니다.',
+      '',
+      '  URL 을 고치지 말고, 비밀번호 원문을 SUPABASE_DB_PASSWORD 에 넣으세요.',
+      '  특수문자를 인코딩할 필요 없습니다 — 실행기가 대신 합니다.',
+    ],
+  };
 }
 
 /** 비밀번호를 지운 형태. 로그에 찍어도 되는 유일한 표현. */
