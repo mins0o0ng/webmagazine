@@ -396,9 +396,16 @@ ISR 이 사라진다.** 캐시된 지면에 개인 상태를 섞지 않는다는
 
 ### 열기 전에 반드시
 
-- [ ] **`npm run test:rls` 전부 통과** — 기획안 §6 M2 의 완료 기준. 실행법은
-      [DEPLOY.md](./DEPLOY.md) 1.4 참고. 실제 Supabase 프로젝트 없이는 돌릴 수 없어
-      아직 한 번도 실행되지 않았다.
+- [ ] **`npm run test:rls` 전부 통과** — 기획안 §6 M2 / M2-1 의 완료 기준.
+      실제 Supabase 프로젝트가 있어야 돌아가고, 아직 한 번도 실행되지 않았다.
+      로컬에 아무것도 설치하지 않고 돌리려면 **GitHub Actions** 를 쓴다:
+      저장소 Settings → Secrets and variables → Actions 에 네 값을 넣고
+      Actions 탭 → **DB 점검** → Run workflow.
+      (`SUPABASE_URL` · `SUPABASE_ANON_KEY` · `SUPABASE_SERVICE_ROLE_KEY` ·
+      `SUPABASE_DATABASE_URL`, 선택으로 `ADMIN_LOGIN_PASSWORD`)
+      워크플로가 마이그레이션 → check_rls.sql → test:rls 를 차례로 돌리고
+      결과를 실행 요약에 표로 남긴다. **개발용 프로젝트에서만 돌릴 것** —
+      테스트 계정 세 개를 만들었다 지운다.
 - [ ] **이용약관·개인정보처리방침의 TODO 채우기** — 두 문서 모두 초안이고
       화면에 초안 안내가 떠 있다. 특히 약관 8조(게시물 관리)와 9조(권리 귀속)는
       남의 글을 받는 매체에서 비어 있으면 안 되는 조항이다.
