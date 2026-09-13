@@ -69,6 +69,20 @@ jobs:
               echo "없는 secret: \`${missing[*]}\`"
               echo ''
               echo '저장소 **Settings → Secrets and variables → Actions** 에서 추가하세요.'
+              case " ${missing[*]} " in
+                *' SUPABASE_DB_PASSWORD '*)
+                  echo ''
+                  echo 'SUPABASE_DATABASE_URL 에 `[YOUR-PASSWORD]` 가 그대로 있는데'
+                  echo 'SUPABASE_DB_PASSWORD 도 비어 있습니다. **둘 중 한쪽에는 비밀번호가'
+                  echo '있어야 합니다.** 쓸 수 있는 조합은 둘입니다.'
+                  echo ''
+                  echo '| SUPABASE_DATABASE_URL | SUPABASE_DB_PASSWORD |'
+                  echo '|---|---|'
+                  echo '| `...:[YOUR-PASSWORD]@...` (그대로) | 비밀번호 원문 |'
+                  echo '| `...:실제비밀번호@...` (직접 넣음) | 비움 |'
+                  echo ''
+                  echo '앞쪽을 권합니다 — 특수문자를 손으로 인코딩하지 않아도 됩니다.' ;;
+              esac
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
