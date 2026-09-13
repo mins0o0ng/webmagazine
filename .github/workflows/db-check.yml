@@ -132,6 +132,22 @@ jobs:
             echo "::warning::마이그레이션이 실패했습니다. 뒤의 검사는 그대로 진행합니다."
           fi
 
+      # "화면에서는 권한이 없다는데 DB 는 있다고 한다" 를 가릴 때 쓴다.
+      # db:admin 은 "이미 편집장" 한 줄만 찍어서, 계정이 둘로 갈렸는지
+      # (auth.users 는 있는데 profiles 가 다른 행인지) 를 구분하지 못한다.
+      # 여기서는 두 테이블을 조인해 있는 그대로 찍는다.
+      - name: 계정 상태
+        if: always() && inputs.admin_email != ''
+        env:
+          ADMIN_EMAIL_INPUT: ${{ inputs.admin_email }}
+        run: |
+          set +e
+          psql "$DATABASE_URL" -v email="$ADMIN_EMAIL_INPUT" \
+            -f supabase/whoami.sql > who.log 2>&1
+          set -e
+          { echo '## 계정 상태'; echo '```'; cat who.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          cat who.log
+
       # 설정이 맞는지 본다. 실제로 막히는지는 test:rls 가 본다 — 다른 질문이다.
       - name: 권한·RLS 점검 (check_rls.sql)
         id: checkrls
