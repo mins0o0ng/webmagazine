@@ -56,6 +56,14 @@ function check(name, ok, detail = '') {
  * canWrite 는 M2-1 의 초대제 때문에 붙었다. 기본값이 false 이므로 글쓰기 검사를
  * 하려면 명시적으로 켜야 한다 — 그게 곧 "초대받았다" 는 뜻이다.
  */
+/**
+ * 만든 계정을 여기에 바로 적는다. 뒤에서 무엇이 실패하든 정리 단계가 이 목록만
+ * 보면 되도록. 예전에는 계정 생성이 try 블록 바깥에 있어서, profile 생성이
+ * 실패하면 이미 만들어진 auth 계정이 그대로 남았다. 실제로 실패한 실행 세 번이
+ * 남의 프로젝트에 rls-a-*@example.test 계정 셋을 흘렸다.
+ */
+const createdUserIds = [];
+
 async function makeUser(tag, { canWrite = true } = {}) {
   const email = `rls-${tag}-${randomUUID().slice(0, 8)}@example.test`;
   const password = randomUUID();
@@ -68,6 +76,7 @@ async function makeUser(tag, { canWrite = true } = {}) {
   if (createError) throw new Error(`계정 생성 실패(${tag}): ${createError.message}`);
 
   const id = created.user.id;
+  createdUserIds.push(id);
   const handle = `rls${tag}${id.slice(0, 6).replace(/[^a-z0-9]/g, '0')}`;
 
   const { error: profileError } = await admin
@@ -82,18 +91,38 @@ async function makeUser(tag, { canWrite = true } = {}) {
   return { id, handle, email, client };
 }
 
+/** 앞선 실행이 흘린 계정을 치운다. 남겨두면 남의 프로젝트에 쓰레기가 쌓인다. */
+async function sweepLeftovers() {
+  const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  if (error) return;
+  const stale = (data?.users ?? []).filter((u) => /^rls-[abc]-[0-9a-f]{8}@example\.test$/.test(u.email ?? ''));
+  if (stale.length === 0) return;
+  console.log(`앞선 실행이 남긴 테스트 계정 ${stale.length}개를 먼저 지웁니다.`);
+  for (const u of stale) {
+    await admin.auth.admin.deleteUser(u.id).catch(() => {});
+    console.log(`  ${u.email}`);
+  }
+  console.log('');
+}
+
 async function main() {
   console.log('RLS 정책 우회 테스트\n');
 
-  // a, b 는 초대받은 기고자. c 는 가입만 한 읽기 계정이다 (M2-1).
-  const a = await makeUser('a');
-  const b = await makeUser('b');
-  const c = await makeUser('c', { canWrite: false });
-  const anon = createClient(URL, ANON, { auth: { persistSession: false } });
+  await sweepLeftovers();
 
+  const anon = createClient(URL, ANON, { auth: { persistSession: false } });
   const createdPostIds = [];
 
+  // 계정 생성도 try 안에서 한다. 밖에서 만들면 profile 생성이 실패했을 때
+  // 이미 만들어진 auth 계정이 정리 단계에 닿지 못하고 그대로 남는다.
+  let a, b, c;
+
   try {
+    // a, b 는 초대받은 기고자. c 는 가입만 한 읽기 계정이다 (M2-1).
+    a = await makeUser('a');
+    b = await makeUser('b');
+    c = await makeUser('c', { canWrite: false });
+
     // A 가 발행글과 초안을 하나씩 만든다.
     const { data: published, error: pubErr } = await a.client
       .from('posts')
@@ -444,12 +473,18 @@ async function main() {
     }
   } finally {
     // 정리. 글은 author cascade 로 함께 지워지지만 혹시 남은 것을 먼저 치운다.
+    //
+    // createdUserIds 를 도는 이유: a·b·c 중 일부만 만들어진 채 실패했을 수도 있다.
+    // 여기서 던지면 진짜 실패 원인이 정리 중 오류에 가려지므로 전부 삼킨다.
     if (createdPostIds.length > 0) {
-      await admin.from('posts').delete().in('id', createdPostIds);
+      await admin.from('posts').delete().in('id', createdPostIds).then(
+        () => {},
+        () => {},
+      );
     }
-    await admin.auth.admin.deleteUser(a.id);
-    await admin.auth.admin.deleteUser(b.id);
-    await admin.auth.admin.deleteUser(c.id);
+    for (const id of createdUserIds) {
+      await admin.auth.admin.deleteUser(id).catch(() => {});
+    }
   }
 
   console.log(`\n${passed} 통과, ${failed} 실패`);
