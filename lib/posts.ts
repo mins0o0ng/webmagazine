@@ -1,4 +1,5 @@
 import { PICK } from './categories';
+import { runQuery } from './retry';
 import { publicClient } from './supabase';
 import type { AuthorRef, PostCategory, PostDetail, PostSummary, Profile } from './types';
 
@@ -29,18 +30,19 @@ export async function listPublished({
   offset = 0,
   excludeId,
 }: FeedOptions = {}): Promise<PostSummary[]> {
-  let query = publicClient()
-    .from('posts')
-    .select(SUMMARY_COLUMNS)
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-    .range(offset, offset + limit - 1);
+  const data = await runQuery('글 목록을 불러오지 못했습니다', () => {
+    let query = publicClient()
+      .from('posts')
+      .select(SUMMARY_COLUMNS)
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-  if (category) query = query.eq('category', category);
-  if (excludeId !== undefined) query = query.neq('id', excludeId);
+    if (category) query = query.eq('category', category);
+    if (excludeId !== undefined) query = query.neq('id', excludeId);
+    return query;
+  });
 
-  const { data, error } = await query;
-  if (error) throw new Error(`글 목록을 불러오지 못했습니다: ${error.message}`);
   return (data ?? []) as unknown as PostSummary[];
 }
 
@@ -51,14 +53,15 @@ export async function getEditorsPick(): Promise<PostSummary | null> {
 }
 
 export async function getPublishedPost(id: number): Promise<PostDetail | null> {
-  const { data, error } = await publicClient()
-    .from('posts')
-    .select(DETAIL_COLUMNS)
-    .eq('id', id)
-    .eq('status', 'published')
-    .maybeSingle();
+  const data = await runQuery('글을 불러오지 못했습니다', () =>
+    publicClient()
+      .from('posts')
+      .select(DETAIL_COLUMNS)
+      .eq('id', id)
+      .eq('status', 'published')
+      .maybeSingle(),
+  );
 
-  if (error) throw new Error(`글을 불러오지 못했습니다: ${error.message}`);
   return (data as unknown as PostDetail) ?? null;
 }
 
@@ -77,13 +80,13 @@ export async function listMonthlyAuthors(): Promise<MonthlyAuthor[]> {
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-  const { data, error } = await publicClient()
-    .from('posts')
-    .select(`author_id, ${AUTHOR}`)
-    .eq('status', 'published')
-    .gte('published_at', monthStart.toISOString());
-
-  if (error) throw new Error(`필자 목록을 불러오지 못했습니다: ${error.message}`);
+  const data = await runQuery('필자 목록을 불러오지 못했습니다', () =>
+    publicClient()
+      .from('posts')
+      .select(`author_id, ${AUTHOR}`)
+      .eq('status', 'published')
+      .gte('published_at', monthStart.toISOString()),
+  );
 
   const rows = (data ?? []) as unknown as { author_id: string; author: AuthorRef }[];
   const byAuthor = new Map<string, MonthlyAuthor>();
@@ -107,14 +110,15 @@ export async function listMonthlyAuthors(): Promise<MonthlyAuthor[]> {
 
 /** 핸들로 공개 프로필을 찾는다. profiles 는 RLS 상 전체 공개다. */
 export async function getProfileByHandle(handle: string): Promise<Profile | null> {
-  const { data, error } = await publicClient()
-    .from('profiles')
-    .select('*')
-    .eq('handle', handle.toLowerCase())
-    .maybeSingle();
+  const data = await runQuery('필자를 불러오지 못했습니다', () =>
+    publicClient()
+      .from('profiles')
+      .select('*')
+      .eq('handle', handle.toLowerCase())
+      .maybeSingle(),
+  );
 
-  if (error) throw new Error(`필자를 불러오지 못했습니다: ${error.message}`);
-  return (data as Profile) ?? null;
+  return (data as Profile | null) ?? null;
 }
 
 /**
@@ -126,14 +130,15 @@ export async function listPublishedByAuthor(
   authorId: string,
   limit = 30,
 ): Promise<PostSummary[]> {
-  const { data, error } = await publicClient()
-    .from('posts')
-    .select(SUMMARY_COLUMNS)
-    .eq('author_id', authorId)
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-    .limit(limit);
+  const data = await runQuery('글 목록을 불러오지 못했습니다', () =>
+    publicClient()
+      .from('posts')
+      .select(SUMMARY_COLUMNS)
+      .eq('author_id', authorId)
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .limit(limit),
+  );
 
-  if (error) throw new Error(`글 목록을 불러오지 못했습니다: ${error.message}`);
   return (data ?? []) as unknown as PostSummary[];
 }
