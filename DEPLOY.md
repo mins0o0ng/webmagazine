@@ -290,8 +290,29 @@ Secret 을 복사한다.
 
 **3. `NOTION_DATABASE_ID`**
 
-데이터베이스 URL 의 32자리 문자열. 현재 값은
-`ba421ea0-2629-4984-ad5b-8b256562d5a4`.
+```
+eef19f7daa4c4248ae21c0718e65b41b
+```
+
+데이터베이스를 열었을 때 주소창에 있는 **32자리 16진수**다. 하이픈은 있어도
+없어도 된다.
+
+```
+https://www.notion.so/eef19f7daa4c4248ae21c0718e65b41b?v=...
+                      └──────── 이 부분 ────────┘
+```
+
+> **data source ID 와 헷갈리지 말 것.** 이 데이터베이스에는 ID 가 둘 있다.
+>
+> | | 값 | |
+> |---|---|---|
+> | database | `eef19f7daa4c4248ae21c0718e65b41b` | **이걸 쓴다** |
+> | data source | `ba421ea0-2629-4984-ad5b-8b256562d5a4` | 쓰지 않는다 |
+>
+> `lib/notion.ts` 는 노션 API `2022-06-28` 로 `POST /v1/databases/{id}/query` 를
+> 부르고, 이 엔드포인트는 database ID 를 받는다. data source ID 를 넣으면
+> 통합 연결을 제대로 해 두어도 404 가 난다 — 통합 연결이 안 된 것과 증상이
+> 같아서 원인을 찾기 어렵다.
 
 **4. `CRON_SECRET`**
 
