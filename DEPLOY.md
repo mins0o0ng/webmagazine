@@ -213,16 +213,13 @@ npm run dev
 | Build / Install Command | 기본값 그대로 |
 | Production Branch | `main` |
 
-`main` 으로 병합하면 Production 배포가 돈다. 작업 브랜치에 푸시하면 Preview 배포가 돈다.
+`main` 이 저장소의 기본 브랜치다(2026-09-13 확인). `main` 으로 병합하면
+Production 배포가 돌고, 작업 브랜치에 푸시하면 Preview 배포가 돈다.
 
-> **2026-09-12 현재 저장소의 기본 브랜치는 아직 `main` 이 아니라
-> `claude/web-magazine-github-6fdyvl` 이다.** 고치는 곳은 GitHub
-> Settings → General → Default branch (UI 로만 된다).
->
-> 이게 왜 문제인가: `workflow_dispatch` 워크플로는 **기본 브랜치에서만 목록에
-> 등록된다.** Actions 탭의 **DB 점검** 이 `main` 의 최신 내용이 아니라 기본
-> 브랜치에 있던 옛 버전으로 돌 수 있다. Vercel 의 Production Branch 도 같이
-> 확인할 것.
+> **Actions 탭에서 워크플로를 손으로 돌릴 때는 브랜치 선택을 확인할 것.**
+> `workflow_dispatch` 는 기본 브랜치에서만 목록에 등록되지만, 실행할 때 고르는
+> 브랜치는 별개다. 드롭다운이 예전에 고른 작업 브랜치를 기억하고 있으면
+> 그 브랜치의 옛 워크플로가 돈다.
 
 ### 3.2 환경변수
 
