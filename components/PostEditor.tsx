@@ -15,7 +15,10 @@ interface Props {
   post?: PostDetail;
 }
 
-/** 폼에서 자동저장에 보낼 값만 뽑는다. 제출 버튼(status)은 여기 들어오지 않는다. */
+/**
+ * 폼에서 자동저장에 보낼 값만 뽑는다. 허용 목록이라 status 는 들어오지 않는다 —
+ * 자동저장은 언제나 초안이고, 발행 여부는 사람이 버튼을 눌러야 정해진다.
+ */
 function snapshotOf(form: HTMLFormElement): Snapshot {
   const data = new FormData(form);
   const out: Snapshot = {};
@@ -33,6 +36,8 @@ export function PostEditor({ post }: Props) {
 
   const formRef = useRef<HTMLFormElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  /** 눌린 버튼이 발행인지 임시저장인지. 아래 hidden 칸이 서버로 나른다. */
+  const statusRef = useRef<HTMLInputElement>(null);
   /** 툴바가 잡아 둔 커서. 본문이 렌더된 뒤에 적용한다. */
   const pendingSelection = useRef<{ start: number; end: number } | null>(null);
 
@@ -66,6 +71,15 @@ export function PostEditor({ post }: Props) {
   const handleInput = useCallback(() => {
     if (formRef.current) onChange(snapshotOf(formRef.current));
   }, [onChange]);
+
+  /** 버튼을 누른 순간 상태를 정하고, 자동저장의 대기 중인 타이머를 정리한다. */
+  const submitAs = useCallback(
+    (status: 'draft' | 'published') => {
+      if (statusRef.current) statusRef.current.value = status;
+      commit();
+    },
+    [commit],
+  );
 
   // 툴바가 본문을 고친 뒤 커서를 되돌린다. React 가 value 를 반영한 다음이어야 한다.
   useEffect(() => {
@@ -282,10 +296,16 @@ export function PostEditor({ post }: Props) {
         </div>
 
         <div className={styles.actions}>
-          <SubmitButton name="status" value="published" variant="primary" onSubmit={commit}>
+          {/* 어느 버튼을 눌렀는지는 이 칸이 나른다. 제출 버튼의 name/value 에
+              기대지 않는다 — 그 값이 FormData 에 실리지 않아 발행이 전부 초안으로
+              저장되는 일이 실제로 있었다. onClick 은 submit 보다 먼저 도므로
+              여기 적힌 값이 그대로 서버에 간다. */}
+          <input type="hidden" name="status" ref={statusRef} defaultValue="draft" />
+
+          <SubmitButton variant="primary" onSubmit={() => submitAs('published')}>
             발행
           </SubmitButton>
-          <SubmitButton name="status" value="draft" variant="secondary" onSubmit={commit}>
+          <SubmitButton variant="secondary" onSubmit={() => submitAs('draft')}>
             임시저장
           </SubmitButton>
           {isPublished && (
@@ -324,15 +344,16 @@ function SaveIndicator({ state, enabled }: { state: ReturnType<typeof useAutosav
   }
 }
 
+/**
+ * name/value 를 받지 않는다. 어느 버튼을 눌렀는지는 폼의 hidden status 칸이
+ * 나른다 — 제출 버튼의 name/value 는 FormData 에 실리지 않는 경우가 있었고,
+ * 그 결과 발행이 전부 초안으로 저장됐다.
+ */
 function SubmitButton({
-  name,
-  value,
   variant,
   onSubmit,
   children,
 }: {
-  name: string;
-  value: string;
   variant: 'primary' | 'secondary';
   onSubmit: () => void;
   children: React.ReactNode;
@@ -341,8 +362,6 @@ function SubmitButton({
   return (
     <button
       type="submit"
-      name={name}
-      value={value}
       className={styles[variant]}
       onClick={onSubmit}
       disabled={pending}
