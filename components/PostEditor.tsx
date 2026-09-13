@@ -38,7 +38,17 @@ export function PostEditor({ post }: Props) {
 
   const isPublished = post?.status === 'published';
 
-  const { state: saveState, recovered, onChange, commit, dismissRecovered } = useAutosave({
+  // postId 를 받는 것이 중요하다. 자동저장이 초안을 새로 만들면 그 id 는 여기로만
+  // 돌아온다 — 페이지는 여전히 "새 글" 이라 post 는 계속 undefined 다.
+  // 이걸 폼에 심지 않으면 발행이 그 초안을 발행하는 대신 새 행을 하나 더 만든다.
+  const {
+    postId,
+    state: saveState,
+    recovered,
+    onChange,
+    commit,
+    dismissRecovered,
+  } = useAutosave({
     initialId: post?.id ?? null,
     baseline: {
       title: post?.title ?? '',
@@ -120,7 +130,8 @@ export function PostEditor({ post }: Props) {
       )}
 
       <form ref={formRef} action={formAction} onInput={handleInput} className={styles.form}>
-        {post && <input type="hidden" name="id" value={post.id} />}
+        {/* post?.id 가 아니라 postId 다. 자동저장이 방금 만든 초안의 id 까지 포함한다. */}
+        {postId !== null && <input type="hidden" name="id" value={postId} />}
 
         {state.error && (
           <p className={styles.error} role="alert">
